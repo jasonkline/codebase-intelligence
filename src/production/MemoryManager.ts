@@ -238,7 +238,7 @@ export class MemoryManager extends EventEmitter {
       // In development, we can track GC more aggressively
       const originalGC = global.gc;
       if (originalGC) {
-        global.gc = () => {
+        global.gc = async () => {
           const start = Date.now();
           originalGC();
           const duration = Date.now() - start;

@@ -591,7 +591,7 @@ if (!hasPermission(role, 'permission:resource')) {
           category: pattern.category,
           tags: pattern.tags || [],
           learnFromChoice: true,
-          relatedPatterns: [pattern.id]
+          relatedPatterns: [String(pattern.id)]
         }
       };
     } catch (error) {

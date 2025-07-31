@@ -26,71 +26,76 @@ This guide covers all available methods to install and set up the Codebase Intel
 
 ## Installation Methods
 
-### Method 1: Automated Installation (Recommended)
+### Method 1: Source Installation (Recommended)
 
-The easiest way to install Codebase Intelligence:
+The recommended way to install Codebase Intelligence:
 
 ```bash
-# Download and run the installation script
-curl -fsSL https://install.codebase-intelligence.com | bash
+# Clone the repository
+git clone https://github.com/jasonkline/codebase-intelligence.git
+cd codebase-intelligence
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Run the installation script
+./setup-scripts/install.sh
 ```
 
 **Custom installation options:**
 ```bash
 # Install to custom directory
-curl -fsSL https://install.codebase-intelligence.com | bash -s -- --install-dir /opt/codebase-intelligence
+./setup-scripts/install.sh --install-dir /opt/codebase-intelligence
 
 # Specify project path during installation
-curl -fsSL https://install.codebase-intelligence.com | bash -s -- --project-path /path/to/your/project
+./setup-scripts/install.sh --project-path /path/to/your/project
 
 # Custom MCP configuration location
-curl -fsSL https://install.codebase-intelligence.com | bash -s -- --mcp-config ~/.config/custom-mcp.json
+./setup-scripts/install.sh --mcp-config ~/.config/custom-mcp.json
 ```
 
-### Method 2: Binary Installation
+### Method 2: Manual Build from Source
 
-Download pre-built binaries for your platform:
+For custom builds or development:
 
-#### Linux x64
+#### All Platforms
 ```bash
-# Download and extract
-curl -L https://github.com/your-org/codebase-intelligence/releases/latest/download/codebase-intelligence-v1.0.0-linux-x64.tar.gz | tar -xz
+# Clone the repository
+git clone https://github.com/jasonkline/codebase-intelligence.git
+cd codebase-intelligence
 
-# Move to system location
-sudo mv codebase-intelligence /opt/
-sudo ln -s /opt/codebase-intelligence/start.sh /usr/local/bin/codebase-intelligence
+# Install dependencies
+npm install
 
-# Set up environment
+# Build the project
+npm run build
+
+# Set up environment and run
 export CI_PROJECT_PATH=/path/to/your/project
-codebase-intelligence
+node dist/index.js
 ```
 
-#### macOS
+#### Create a Standalone Installation
 ```bash
-# Download and extract
-curl -L https://github.com/your-org/codebase-intelligence/releases/latest/download/codebase-intelligence-v1.0.0-darwin-x64.tar.gz | tar -xz
+# After building, copy to installation directory
+sudo mkdir -p /opt/codebase-intelligence
+sudo cp -r dist/* /opt/codebase-intelligence/
+sudo cp package.json /opt/codebase-intelligence/
+sudo cp -r node_modules /opt/codebase-intelligence/
 
-# Move to applications
-mv codebase-intelligence /Applications/
-ln -s /Applications/codebase-intelligence/start.sh /usr/local/bin/codebase-intelligence
+# Create startup script
+sudo cat > /opt/codebase-intelligence/start.sh << 'EOF'
+#!/bin/bash
+cd "$(dirname "$0")"
+node index.js "$@"
+EOF
+sudo chmod +x /opt/codebase-intelligence/start.sh
 
-# Set up environment
-export CI_PROJECT_PATH=/path/to/your/project
-codebase-intelligence
-```
-
-#### Windows
-```powershell
-# Download and extract (PowerShell)
-Invoke-WebRequest -Uri "https://github.com/your-org/codebase-intelligence/releases/latest/download/codebase-intelligence-v1.0.0-win32-x64.zip" -OutFile "codebase-intelligence.zip"
-Expand-Archive -Path "codebase-intelligence.zip" -DestinationPath "C:\Program Files\codebase-intelligence"
-
-# Add to PATH
-$env:PATH += ";C:\Program Files\codebase-intelligence"
-
-# Set up environment
-$env:CI_PROJECT_PATH = "C:\path\to\your\project"
-codebase-intelligence.exe
+# Link to system path
+sudo ln -sf /opt/codebase-intelligence/start.sh /usr/local/bin/codebase-intelligence
 ```
 
 ### Method 3: Docker Installation
@@ -98,7 +103,7 @@ codebase-intelligence.exe
 #### Using Docker Compose (Recommended)
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/codebase-intelligence.git
+git clone https://github.com/jasonkline/codebase-intelligence.git
 cd codebase-intelligence
 
 # Configure your project path
@@ -129,13 +134,13 @@ docker ps
 docker logs codebase-intelligence
 ```
 
-### Method 4: Source Installation
+### Method 4: Development Setup
 
-For development or custom builds:
+For development or contributing:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/codebase-intelligence.git
+git clone https://github.com/jasonkline/codebase-intelligence.git
 cd codebase-intelligence
 
 # Install dependencies
@@ -144,49 +149,37 @@ npm install
 # Build the project
 npm run build
 
-# Start the server
+# Start in development mode
+npm run dev
+
+# Or start the built server
 npm start
 ```
 
-### Method 5: Package Managers
+### Method 5: Alternative Installation
 
-#### npm/yarn
+#### Direct Node.js Execution
 ```bash
-# Install globally
-npm install -g @codebase-intelligence/server
+# Clone and run directly
+git clone https://github.com/jasonkline/codebase-intelligence.git
+cd codebase-intelligence
+npm install
+npm run build
 
-# Or with yarn
-yarn global add @codebase-intelligence/server
-
-# Run directly
-codebase-intelligence --project /path/to/your/project
+# Run directly with Node.js
+node dist/index.js --project /path/to/your/project
 ```
 
-#### Homebrew (macOS)
+#### Create a Global Command
 ```bash
-# Add our tap
-brew tap codebase-intelligence/tap
+# After building the project
+echo '#!/bin/bash' > codebase-intelligence
+echo "cd $(pwd) && node dist/index.js \"\$@\"" >> codebase-intelligence
+chmod +x codebase-intelligence
+sudo mv codebase-intelligence /usr/local/bin/
 
-# Install
-brew install codebase-intelligence
-
-# Run
+# Now you can run from anywhere
 codebase-intelligence --project /path/to/your/project
-```
-
-#### APT (Ubuntu/Debian)
-```bash
-# Add repository
-curl -fsSL https://packages.codebase-intelligence.com/gpg.key | sudo apt-key add -
-echo "deb https://packages.codebase-intelligence.com/apt stable main" | sudo tee /etc/apt/sources.list.d/codebase-intelligence.list
-
-# Install
-sudo apt update
-sudo apt install codebase-intelligence
-
-# Run as service
-sudo systemctl enable codebase-intelligence
-sudo systemctl start codebase-intelligence
 ```
 
 ## Post-Installation Setup
@@ -450,13 +443,8 @@ If you encounter issues:
    ```
 
 3. **Community support**:
-   - [GitHub Issues](https://github.com/your-org/codebase-intelligence/issues)
-   - [Discord Community](https://discord.gg/codebase-intelligence)
-   - [Documentation](https://docs.codebase-intelligence.com)
-
-4. **Enterprise support**:
-   - Email: support@codebase-intelligence.com
-   - Priority support available with enterprise license
+   - [GitHub Issues](https://github.com/jasonkline/codebase-intelligence/issues)
+   - [Project Repository](https://github.com/jasonkline/codebase-intelligence)
 
 ## Next Steps
 
@@ -469,4 +457,4 @@ After successful installation:
 
 ---
 
-*Need help? Check our [troubleshooting guide](./troubleshooting.md) or [contact support](mailto:support@codebase-intelligence.com).*
+*Need help? Check our [troubleshooting guide](./troubleshooting.md) or [create an issue](https://github.com/jasonkline/codebase-intelligence/issues).*

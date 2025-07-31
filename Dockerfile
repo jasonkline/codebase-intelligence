@@ -77,9 +77,9 @@ ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "dist/index.js"]
 
 # Metadata
-LABEL maintainer="Codebase Intelligence Team" \
+LABEL maintainer="Jason Kline" \
       version="1.0.0" \
       description="Intelligent codebase analysis, pattern recognition, and security scanning MCP server" \
-      org.opencontainers.image.source="https://github.com/your-org/codebase-intelligence" \
-      org.opencontainers.image.documentation="https://github.com/your-org/codebase-intelligence/blob/main/README.md" \
+      org.opencontainers.image.source="https://github.com/jasonkline/codebase-intelligence" \
+      org.opencontainers.image.documentation="https://github.com/jasonkline/codebase-intelligence/blob/main/README.md" \
       org.opencontainers.image.licenses="MIT"

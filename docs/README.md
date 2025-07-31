@@ -116,18 +116,24 @@ The Codebase Intelligence MCP Server provides:
 
 1. **Install the system**:
    ```bash
-   curl -fsSL https://install.codebase-intelligence.com | bash
+   git clone https://github.com/jasonkline/codebase-intelligence.git
+   cd codebase-intelligence
+   npm install
+   npm run build
+   ./setup-scripts/install.sh
    ```
 
 2. **Configure for your project**:
    ```bash
    cd /path/to/your/project
-   codebase-intelligence init
+   # Create .codeintelligence.json configuration file
+   # See configuration.md for details
    ```
 
 3. **Start analyzing**:
    ```bash
-   codebase-intelligence analyze
+   export CI_PROJECT_PATH=/path/to/your/project
+   node ~/.codebase-intelligence/index.js
    ```
 
 4. **Integrate with Claude Code**:
@@ -136,8 +142,11 @@ The Codebase Intelligence MCP Server provides:
    {
      "mcpServers": {
        "codebase-intelligence": {
-         "command": "codebase-intelligence",
-         "args": ["--project", "/path/to/your/project"]
+         "command": "node",
+         "args": ["/path/to/codebase-intelligence/dist/index.js"],
+         "env": {
+           "CI_PROJECT_PATH": "/path/to/your/project"
+         }
        }
      }
    }
@@ -146,10 +155,8 @@ The Codebase Intelligence MCP Server provides:
 ## Support and Community
 
 - **Documentation**: This documentation site
-- **Issues**: [GitHub Issues](https://github.com/your-org/codebase-intelligence/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/codebase-intelligence/discussions)
-- **Discord**: [Community Discord](https://discord.gg/codebase-intelligence)
-- **Enterprise Support**: enterprise@codebase-intelligence.com
+- **Issues**: [GitHub Issues](https://github.com/jasonkline/codebase-intelligence/issues)
+- **Project Repository**: [GitHub](https://github.com/jasonkline/codebase-intelligence)
 
 ## License
 

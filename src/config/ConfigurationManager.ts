@@ -41,6 +41,7 @@ export interface CodeIntelligenceConfig {
     enforceStyles: boolean;
     requireApprovedPatterns: string[];
     customRulesets?: string[];
+    blockCritical?: boolean;
   };
   intelligence: {
     explainComplexity: boolean;
@@ -458,8 +459,8 @@ export class ConfigurationManager {
 
   private addConfigComments(config: CodeIntelligenceConfig): any {
     return {
-      $schema: 'https://raw.githubusercontent.com/codebase-intelligence/schema/main/config.schema.json',
-      $comment: 'Codebase Intelligence Configuration - See documentation at https://docs.codebase-intelligence.com',
+      // $schema: 'https://raw.githubusercontent.com/jasonkline/codebase-intelligence/main/schema/config.schema.json',
+      $comment: 'Codebase Intelligence Configuration - See documentation at https://github.com/jasonkline/codebase-intelligence',
       ...config,
       patterns: {
         ...config.patterns,

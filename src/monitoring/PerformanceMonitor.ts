@@ -263,7 +263,7 @@ export class PerformanceMonitor {
     logger.info(`Removed alert rule: ${ruleName}`);
   }
 
-  enableProfiling(): void {
+  enablePerformanceProfiling(): void {
     this.enableProfiling = true;
     logger.info('Performance profiling enabled');
   }

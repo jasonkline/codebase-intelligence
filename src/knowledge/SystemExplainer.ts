@@ -122,6 +122,26 @@ export interface TroubleshootingIssue {
   solutions: string[];
 }
 
+export interface DataFlowTrace {
+  component: string;
+  flow: string[];
+  dataTypes: string[];
+  securityControls: string[];
+}
+
+export interface DocumentationConfig {
+  includeArchitecture: boolean;
+  includeSecurity: boolean;
+  includeDataFlow: boolean;
+  format: 'markdown' | 'html' | 'json';
+}
+
+export interface Documentation {
+  title: string;
+  content: string;
+  sections: string[];
+}
+
 export class SystemExplainer {
   private db: DatabaseManager;
   private knowledgeExtractor: KnowledgeExtractor;
@@ -387,10 +407,11 @@ export class SystemExplainer {
     };
   }
 
-  private explainArchitecture(architecture: SystemArchitecture): ArchitectureExplanation {
+  explainArchitecture(architecture?: SystemArchitecture): ArchitectureExplanation {
+    const arch = architecture || this.knowledgeExtractor.getArchitecture();
     return {
-      overview: this.generateArchitectureOverview(architecture),
-      layers: this.generateLayerExplanations(architecture),
+      overview: this.generateArchitectureOverview(arch),
+      layers: this.generateLayerExplanations(arch),
       patterns: this.generatePatternExplanations(),
       decisions: this.generateArchitecturalDecisions()
     };
@@ -763,6 +784,200 @@ export class SystemExplainer {
     `);
     const searchTerm = `%${systemName.toLowerCase()}%`;
     return stmt.all(searchTerm, searchTerm) as any[];
+  }
+
+  /**
+   * Trace data flow for a specific component
+   */
+  async traceDataFlow(component: string): Promise<DataFlowTrace> {
+    logger.debug(`Tracing data flow for component: ${component}`);
+    
+    try {
+      const architecture = this.knowledgeExtractor.getArchitecture();
+      const targetComponent = architecture.systems.find(s => 
+        s.name.toLowerCase() === component.toLowerCase() ||
+        component.toLowerCase().includes(s.name.toLowerCase())
+      );
+
+      if (!targetComponent) {
+        return {
+          component,
+          flow: [`Component "${component}" not found in architecture`],
+          dataTypes: [],
+          securityControls: []
+        };
+      }
+
+      const connections = architecture.connections.filter(conn => 
+        conn.from === targetComponent.name || conn.to === targetComponent.name
+      );
+
+      const flow = connections.map(conn => 
+        conn.from === targetComponent.name ? 
+        `${conn.from} → ${conn.to} (${conn.type})` :
+        `${conn.from} → ${conn.to} (${conn.type})`
+      );
+
+      return {
+        component: targetComponent.name,
+        flow,
+        dataTypes: ['user_data', 'system_data'], // Would be extracted from actual analysis
+        securityControls: targetComponent.securityLevel ? [targetComponent.securityLevel] : []
+      };
+    } catch (error) {
+      logger.error(`Failed to trace data flow for ${component}:`, error);
+      return {
+        component,
+        flow: ['Error tracing data flow'],
+        dataTypes: [],
+        securityControls: []
+      };
+    }
+  }
+
+  /**
+   * Explain security aspects of a specific component
+   */
+  async explainComponentSecurity(component: string): Promise<SecurityExplanation> {
+    logger.debug(`Explaining security for component: ${component}`);
+    
+    try {
+      const securityModel = this.knowledgeExtractor.getSecurityModel();
+      const architecture = this.knowledgeExtractor.getArchitecture();
+      
+      const targetComponent = architecture.systems.find(s => 
+        s.name.toLowerCase() === component.toLowerCase()
+      );
+
+      if (!targetComponent) {
+        return {
+          overview: `Component "${component}" not found for security analysis`,
+          authenticationMethods: [],
+          authorizationModel: 'unknown',
+          dataProtection: [],
+          trustBoundaries: [],
+          commonThreats: []
+        };
+      }
+
+      // Filter security information relevant to this component
+      const relevantBoundaries = architecture.securityBoundaries
+        .filter(boundary => boundary.components.includes(targetComponent.name))
+        .map(boundary => boundary.name);
+
+      const componentThreats = securityModel.threatModel.filter(threat =>
+        threat.description.toLowerCase().includes(component.toLowerCase()) ||
+        threat.type.toLowerCase().includes('component')
+      );
+
+      return {
+        overview: `Security analysis for ${component}: ${targetComponent.securityLevel} security level`,
+        authenticationMethods: securityModel.authenticationMethods,
+        authorizationModel: securityModel.authorizationModel,
+        dataProtection: securityModel.dataProtection,
+        trustBoundaries: relevantBoundaries,
+        commonThreats: this.generateThreatExplanations(componentThreats)
+      };
+    } catch (error) {
+      logger.error(`Failed to explain security for ${component}:`, error);
+      return {
+        overview: 'Error analyzing component security',
+        authenticationMethods: [],
+        authorizationModel: 'unknown',
+        dataProtection: [],
+        trustBoundaries: [],
+        commonThreats: []
+      };
+    }
+  }
+
+  /**
+   * Generate comprehensive system documentation
+   */
+  async generateSystemDocumentation(config: DocumentationConfig): Promise<Documentation> {
+    logger.info('Generating system documentation');
+    
+    try {
+      let content = '';
+      const sections: string[] = [];
+
+      if (config.includeArchitecture) {
+        const architecture = this.explainArchitecture();
+        content += this.formatArchitectureDocumentation(architecture, config.format);
+        sections.push('Architecture');
+      }
+
+      if (config.includeSecurity) {
+        const securityModel = this.knowledgeExtractor.getSecurityModel();
+        const security = this.explainSecurity(securityModel);
+        content += this.formatSecurityDocumentation(security, config.format);
+        sections.push('Security');
+      }
+
+      if (config.includeDataFlow) {
+        const dataFlow = await this.explainDataFlow('architecture');
+        content += this.formatDataFlowDocumentation(dataFlow, config.format);
+        sections.push('Data Flow');
+      }
+
+      return {
+        title: 'System Documentation',
+        content,
+        sections
+      };
+    } catch (error) {
+      logger.error('Failed to generate system documentation:', error);
+      return {
+        title: 'System Documentation',
+        content: 'Error generating documentation',
+        sections: []
+      };
+    }
+  }
+
+  private formatArchitectureDocumentation(architecture: ArchitectureExplanation, format: string): string {
+    if (format === 'markdown') {
+      let doc = '# Architecture\n\n';
+      doc += `${architecture.overview}\n\n`;
+      doc += '## Layers\n\n';
+      architecture.layers.forEach(layer => {
+        doc += `### ${layer.name}\n`;
+        doc += `${layer.purpose}\n\n`;
+        doc += '**Components:** ' + layer.components.join(', ') + '\n\n';
+        doc += '**Responsibilities:**\n';
+        layer.responsibilities.forEach(resp => doc += `- ${resp}\n`);
+        doc += '\n';
+      });
+      return doc;
+    }
+    return JSON.stringify(architecture, null, 2);
+  }
+
+  private formatSecurityDocumentation(security: SecurityExplanation, format: string): string {
+    if (format === 'markdown') {
+      let doc = '# Security Model\n\n';
+      doc += `${security.overview}\n\n`;
+      doc += '## Authentication Methods\n\n';
+      security.authenticationMethods.forEach(method => doc += `- ${method}\n`);
+      doc += `\n## Authorization Model\n\n${security.authorizationModel}\n\n`;
+      return doc;
+    }
+    return JSON.stringify(security, null, 2);
+  }
+
+  private formatDataFlowDocumentation(dataFlow: DataFlowExplanation[], format: string): string {
+    if (format === 'markdown') {
+      let doc = '# Data Flow\n\n';
+      dataFlow.forEach(flow => {
+        doc += `## ${flow.name}\n\n`;
+        doc += `${flow.description}\n\n`;
+        doc += '### Steps\n\n';
+        flow.steps.forEach(step => doc += `- ${step}\n`);
+        doc += '\n';
+      });
+      return doc;
+    }
+    return JSON.stringify(dataFlow, null, 2);
   }
 }
 

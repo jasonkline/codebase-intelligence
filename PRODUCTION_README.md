@@ -6,29 +6,34 @@ The Codebase Intelligence MCP Server is a comprehensive system that provides int
 
 ## Quick Start
 
-### Option 1: Automated Installation
+### Option 1: Source Installation
 ```bash
-# Download and run the installation script
-curl -fsSL https://raw.githubusercontent.com/your-org/codebase-intelligence/main/setup-scripts/install.sh | bash
+# Clone the repository and run installation script
+git clone https://github.com/jasonkline/codebase-intelligence.git
+cd codebase-intelligence
+./setup-scripts/install.sh
 ```
 
 ### Option 2: Docker Deployment
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/codebase-intelligence.git
+git clone https://github.com/jasonkline/codebase-intelligence.git
 cd codebase-intelligence
 
 # Start with Docker Compose
 docker-compose up -d
 ```
 
-### Option 3: Binary Installation
+### Option 3: Manual Build
 ```bash
-# Download the appropriate binary for your platform
-curl -L https://github.com/your-org/codebase-intelligence/releases/latest/download/codebase-intelligence-v1.0.0-linux-x64.tar.gz | tar -xz
+# Clone and build from source
+git clone https://github.com/jasonkline/codebase-intelligence.git
+cd codebase-intelligence
+npm install
+npm run build
 
-# Run the binary
-./codebase-intelligence/start.sh
+# Run directly
+node dist/index.js
 ```
 
 ## Architecture
@@ -83,19 +88,23 @@ curl -L https://github.com/your-org/codebase-intelligence/releases/latest/downlo
 
 ## Installation Methods
 
-### 1. Automated Installation Script
+### 1. Installation Script
 
 The installation script handles all dependencies and configuration automatically:
 
 ```bash
+# Clone repository first
+git clone https://github.com/jasonkline/codebase-intelligence.git
+cd codebase-intelligence
+
 # Basic installation
-curl -fsSL https://install.codebase-intelligence.com | bash
+./setup-scripts/install.sh
 
 # Custom installation directory
-curl -fsSL https://install.codebase-intelligence.com | bash -s -- --install-dir /opt/codebase-intelligence
+./setup-scripts/install.sh --install-dir /opt/codebase-intelligence
 
 # With custom project path
-curl -fsSL https://install.codebase-intelligence.com | bash -s -- --project-path /path/to/your/project
+./setup-scripts/install.sh --project-path /path/to/your/project
 ```
 
 ### 2. Docker Deployment
@@ -189,7 +198,7 @@ For development or custom deployments:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/codebase-intelligence.git
+git clone https://github.com/jasonkline/codebase-intelligence.git
 cd codebase-intelligence
 
 # Install dependencies
@@ -372,15 +381,14 @@ grep "ERROR" ~/.codebase-intelligence/logs/combined.log
 
 ### Telemetry and Analytics
 
-The system collects anonymous usage data by default:
+The system can collect anonymous usage data (disabled by default):
 
 ```json
 {
   "telemetry": {
-    "enabled": true,
-    "endpoint": "https://telemetry.codebase-intelligence.com",
+    "enabled": false,
     "anonymize": true,
-    "includeSystemMetrics": true,
+    "includeSystemMetrics": false,
     "excludePatterns": ["password", "secret", "token"]
   }
 }
@@ -542,9 +550,8 @@ node --inspect ~/.codebase-intelligence/dist/index.js
 ### Support
 
 - **Documentation**: [docs/](./docs/)
-- **Issues**: [GitHub Issues](https://github.com/your-org/codebase-intelligence/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/codebase-intelligence/discussions)
-- **Enterprise Support**: support@codebase-intelligence.com
+- **Issues**: [GitHub Issues](https://github.com/jasonkline/codebase-intelligence/issues)
+- **Project Repository**: [GitHub](https://github.com/jasonkline/codebase-intelligence)
 
 ## Upgrading
 
@@ -558,8 +565,11 @@ node --inspect ~/.codebase-intelligence/dist/index.js
 # Backup current installation
 cp -r ~/.codebase-intelligence ~/.codebase-intelligence.backup
 
-# Download new version
-curl -fsSL https://install.codebase-intelligence.com | bash
+# Pull latest changes and rebuild
+git pull origin main
+npm install
+npm run build
+./setup-scripts/install.sh
 
 # Verify upgrade
 ~/.codebase-intelligence/dist/index.js --version
@@ -581,7 +591,7 @@ mv ~/.codebase-intelligence.backup ~/.codebase-intelligence
 
 This software is licensed under the MIT License. See [LICENSE](./LICENSE) for details.
 
-For enterprise deployments, custom integrations, and priority support, contact: enterprise@codebase-intelligence.com
+For questions, issues, or contributions, please visit the [project repository](https://github.com/jasonkline/codebase-intelligence).
 
 ---
 

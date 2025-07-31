@@ -16,9 +16,17 @@
     "lint": "eslint src/**/*.ts",
     "clean": "rm -rf dist"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["mcp", "codebase-analysis", "security-scanning", "pattern-recognition", "claude-code"],
+  "author": "Jason Kline <jason.kline@narwol.ai>",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jasonkline/codebase-intelligence.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jasonkline/codebase-intelligence/issues"
+  },
+  "homepage": "https://github.com/jasonkline/codebase-intelligence#readme",
   "type": "commonjs",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.0",

@@ -18,6 +18,7 @@ import logger from '../utils/logger';
 import FileScanner, { ScanResult, ScanProgress } from '../scanner/FileScanner';
 import { SecurityScanner, SecurityScanOptions } from '../security/SecurityScanner';
 import { AuthPatternAnalyzer, AuthFlow } from '../security/AuthPatternAnalyzer';
+import { ASTParser } from '../parser/ASTParser';
 import { RLSAnalyzer, RLSAnalysisResult } from '../security/RLSAnalyzer';
 import { OWASPScanner, OWASPScanResult } from '../security/OWASPScanner';
 import { SecurityFinding, VulnerabilitySeverity, VulnerabilityCategory, vulnerabilityDatabase } from '../security/VulnerabilityDatabase';
@@ -127,7 +128,7 @@ interface ExplainSystemArgs {
 
 interface AnalyzeImpactArgs {
   targetComponent: string;
-  changeType: 'modify' | 'delete' | 'add' | 'refactor';
+  changeType: 'modify' | 'delete' | 'add';
   changeDescription?: string;
 }
 
@@ -168,6 +169,7 @@ class CodebaseIntelligenceMCPServer {
   private configManager: ConfigurationManager;
   private responseFormatter: ResponseFormatter;
   private performanceMonitor: PerformanceMonitor;
+  private astParser: ASTParser;
   private securityTools: SecurityTools;
   private patternTools: PatternTools;
   private knowledgeTools: KnowledgeTools;
@@ -180,6 +182,7 @@ class CodebaseIntelligenceMCPServer {
     this.database = new DatabaseManager();
     this.responseFormatter = new ResponseFormatter(this.configManager);
     this.performanceMonitor = new PerformanceMonitor();
+    this.astParser = new ASTParser();
     
     // Initialize core analyzers
     this.fileScanner = new FileScanner();
@@ -221,7 +224,8 @@ class CodebaseIntelligenceMCPServer {
       this.patternRegistry,
       this.ruleEngine,
       this.responseFormatter,
-      this.performanceMonitor
+      this.performanceMonitor,
+      this.astParser
     );
     
     this.knowledgeTools = new KnowledgeTools(
@@ -550,7 +554,7 @@ class CodebaseIntelligenceMCPServer {
                 },
                 changeType: {
                   type: 'string',
-                  enum: ['modify', 'delete', 'add', 'refactor'],
+                  enum: ['modify', 'delete', 'add'],
                   description: 'Type of change being made',
                 },
                 changeDescription: {
@@ -879,7 +883,7 @@ class CodebaseIntelligenceMCPServer {
     });
   }
 
-  private async handlePing(args: { message?: string }): Promise<{ content: PingResult[] }> {
+  private async handlePing(args: { message?: string }): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Ping tool called', { args });
 
     const result: PingResult = {
@@ -889,11 +893,16 @@ class CodebaseIntelligenceMCPServer {
     };
 
     return {
-      content: [result],
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2)
+        }
+      ],
     };
   }
 
-  private async handleAnalyzeProject(args: AnalyzeProjectArgs): Promise<{ content: AnalysisResult[] }> {
+  private async handleAnalyzeProject(args: AnalyzeProjectArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Analyze project tool called', { args });
 
     try {
@@ -967,7 +976,12 @@ class CodebaseIntelligenceMCPServer {
       logger.info(`Analysis completed in ${endTime - startTime}ms. Success: ${result.success}`);
 
       return {
-        content: [result],
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2)
+          }
+        ],
       };
 
     } catch (error) {
@@ -1004,7 +1018,12 @@ class CodebaseIntelligenceMCPServer {
       };
 
       return {
-        content: [errorResult],
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(errorResult, null, 2)
+          }
+        ],
       };
     }
   }
@@ -1088,7 +1107,7 @@ class CodebaseIntelligenceMCPServer {
     return recommendations;
   }
 
-  private async handleAnalyzeSecurity(args: SecurityAnalysisArgs): Promise<{ content: any[] }> {
+  private async handleAnalyzeSecurity(args: SecurityAnalysisArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Security analysis tool called', { args });
 
     try {
@@ -1139,7 +1158,14 @@ class CodebaseIntelligenceMCPServer {
       };
 
       logger.info(`Security analysis completed. Found ${securityFindings.length} issues`);
-      return { content: [result] };
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2)
+          }
+        ]
+      };
 
     } catch (error) {
       logger.error('Error in security analysis:', error);
@@ -1162,11 +1188,18 @@ class CodebaseIntelligenceMCPServer {
         recommendations: ['Fix the analysis error and try again']
       };
 
-      return { content: [errorResult] };
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(errorResult, null, 2)
+          }
+        ]
+      };
     }
   }
 
-  private async handleCheckAuthPattern(args: AuthPatternAnalysisArgs): Promise<{ content: any[] }> {
+  private async handleCheckAuthPattern(args: AuthPatternAnalysisArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Auth pattern analysis tool called', { args });
 
     try {
@@ -1227,7 +1260,14 @@ class CodebaseIntelligenceMCPServer {
       };
 
       logger.info(`Auth pattern analysis completed. Found ${authFlow.authChecks.length} auth checks, ${authFlow.gaps.length} gaps`);
-      return { content: [result] };
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2)
+          }
+        ]
+      };
 
     } catch (error) {
       logger.error('Error in auth pattern analysis:', error);
@@ -1244,11 +1284,18 @@ class CodebaseIntelligenceMCPServer {
         recommendations: ['Fix the analysis error and try again']
       };
 
-      return { content: [errorResult] };
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(errorResult, null, 2)
+          }
+        ]
+      };
     }
   }
 
-  private async handleFindVulnerabilities(args: VulnerabilitySearchArgs): Promise<{ content: any[] }> {
+  private async handleFindVulnerabilities(args: VulnerabilitySearchArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Vulnerability search tool called', { args });
 
     try {
@@ -1324,7 +1371,7 @@ class CodebaseIntelligenceMCPServer {
       };
 
       logger.info(`Vulnerability search completed. Found ${findings.length} issues`);
-      return { content: [result] };
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
 
     } catch (error) {
       logger.error('Error in vulnerability search:', error);
@@ -1345,11 +1392,11 @@ class CodebaseIntelligenceMCPServer {
         recommendations: ['Fix the analysis error and try again']
       };
 
-      return { content: [errorResult] };
+      return { content: [{ type: "text", text: JSON.stringify(errorResult, null, 2) }] };
     }
   }
 
-  private async handleLearnPatterns(args: LearnPatternsArgs): Promise<{ content: any[] }> {
+  private async handleLearnPatterns(args: LearnPatternsArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Learn patterns tool called', { args });
 
     try {
@@ -1408,7 +1455,7 @@ class CodebaseIntelligenceMCPServer {
       };
 
       logger.info(`Pattern learning completed. Learned ${totalPatternsLearned} patterns`);
-      return { content: [result] };
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
 
     } catch (error) {
       logger.error('Error in learn_patterns:', error);
@@ -1427,11 +1474,11 @@ class CodebaseIntelligenceMCPServer {
         recommendations: ['Fix the analysis error and try again']
       };
 
-      return { content: [errorResult] };
+      return { content: [{ type: "text", text: JSON.stringify(errorResult, null, 2) }] };
     }
   }
 
-  private async handleCheckPatternCompliance(args: CheckPatternComplianceArgs): Promise<{ content: any[] }> {
+  private async handleCheckPatternCompliance(args: CheckPatternComplianceArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Check pattern compliance tool called', { args });
 
     try {
@@ -1501,7 +1548,7 @@ class CodebaseIntelligenceMCPServer {
       };
 
       logger.info(`Pattern compliance check completed. Score: ${analysisResult.overallScore}, Violations: ${filteredViolations.length}`);
-      return { content: [result] };
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
 
     } catch (error) {
       logger.error('Error in check_pattern_compliance:', error);
@@ -1522,11 +1569,11 @@ class CodebaseIntelligenceMCPServer {
         recommendations: ['Fix the analysis error and try again']
       };
 
-      return { content: [errorResult] };
+      return { content: [{ type: "text", text: JSON.stringify(errorResult, null, 2) }] };
     }
   }
 
-  private async handleGetApprovedPattern(args: GetApprovedPatternArgs): Promise<{ content: any[] }> {
+  private async handleGetApprovedPattern(args: GetApprovedPatternArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Get approved pattern tool called', { args });
 
     try {
@@ -1573,7 +1620,7 @@ class CodebaseIntelligenceMCPServer {
       };
 
       logger.info(`Retrieved ${patterns.length} approved patterns for ${category}`);
-      return { content: [result] };
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
 
     } catch (error) {
       logger.error('Error in get_approved_pattern:', error);
@@ -1591,11 +1638,11 @@ class CodebaseIntelligenceMCPServer {
         recommendations: ['Fix the query error and try again']
       };
 
-      return { content: [errorResult] };
+      return { content: [{ type: "text", text: JSON.stringify(errorResult, null, 2) }] };
     }
   }
 
-  private async handleSuggestPattern(args: SuggestPatternArgs): Promise<{ content: any[] }> {
+  private async handleSuggestPattern(args: SuggestPatternArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Suggest pattern tool called', { args });
 
     try {
@@ -1720,7 +1767,7 @@ export function ComponentName({ id, optional = false }: Props) {
       };
 
       logger.info(`Generated ${suggestions.length} pattern suggestions for ${filePath}`);
-      return { content: [result] };
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
 
     } catch (error) {
       logger.error('Error in suggest_pattern:', error);
@@ -1735,11 +1782,11 @@ export function ComponentName({ id, optional = false }: Props) {
         recommendations: ['Fix the analysis error and try again']
       };
 
-      return { content: [errorResult] };
+      return { content: [{ type: "text", text: JSON.stringify(errorResult, null, 2) }] };
     }
   }
 
-  private async handleExplainSystem(args: ExplainSystemArgs): Promise<{ content: any[] }> {
+  private async handleExplainSystem(args: ExplainSystemArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Explain system tool called', { args });
 
     try {
@@ -1770,7 +1817,7 @@ export function ComponentName({ id, optional = false }: Props) {
       };
 
       logger.info(`System query processed successfully with confidence: ${queryResult.confidence}`);
-      return { content: [result] };
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
 
     } catch (error) {
       logger.error('Error in explain_system:', error);
@@ -1788,11 +1835,11 @@ export function ComponentName({ id, optional = false }: Props) {
         followUpQuestions: ['Can you rephrase your question?', 'What specific aspect would you like to know about?']
       };
 
-      return { content: [errorResult] };
+      return { content: [{ type: "text", text: JSON.stringify(errorResult, null, 2) }] };
     }
   }
 
-  private async handleAnalyzeImpact(args: AnalyzeImpactArgs): Promise<{ content: any[] }> {
+  private async handleAnalyzeImpact(args: AnalyzeImpactArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Analyze impact tool called', { args });
 
     try {
@@ -1850,7 +1897,7 @@ export function ComponentName({ id, optional = false }: Props) {
       };
 
       logger.info(`Impact analysis completed. Risk: ${impactResult.riskAssessment.overallRisk}, Score: ${impactResult.impactAnalysis.impactScore}`);
-      return { content: [result] };
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
 
     } catch (error) {
       logger.error('Error in analyze_impact:', error);
@@ -1871,11 +1918,11 @@ export function ComponentName({ id, optional = false }: Props) {
         recommendations: ['Fix the analysis error and try again']
       };
 
-      return { content: [errorResult] };
+      return { content: [{ type: "text", text: JSON.stringify(errorResult, null, 2) }] };
     }
   }
 
-  private async handleGetSystemDocs(args: GetSystemDocsArgs): Promise<{ content: any[] }> {
+  private async handleGetSystemDocs(args: GetSystemDocsArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Get system docs tool called', { args });
 
     try {
@@ -1955,7 +2002,7 @@ export function ComponentName({ id, optional = false }: Props) {
       };
 
       logger.info(`Documentation generated for ${systemName}. Length: ${documentation.length} characters`);
-      return { content: [result] };
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
 
     } catch (error) {
       logger.error('Error in get_system_docs:', error);
@@ -1974,11 +2021,11 @@ export function ComponentName({ id, optional = false }: Props) {
         }
       };
 
-      return { content: [errorResult] };
+      return { content: [{ type: "text", text: JSON.stringify(errorResult, null, 2) }] };
     }
   }
 
-  private async handleTraceDataFlow(args: TraceDataFlowArgs): Promise<{ content: any[] }> {
+  private async handleTraceDataFlow(args: TraceDataFlowArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Trace data flow tool called', { args });
 
     try {
@@ -2081,7 +2128,7 @@ export function ComponentName({ id, optional = false }: Props) {
       };
 
       logger.info(`Data flow trace completed. Found ${relevantFlows.length} flows`);
-      return { content: [result] };
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
 
     } catch (error) {
       logger.error('Error in trace_data_flow:', error);
@@ -2101,11 +2148,11 @@ export function ComponentName({ id, optional = false }: Props) {
         recommendations: ['Fix the analysis error and try again']
       };
 
-      return { content: [errorResult] };
+      return { content: [{ type: "text", text: JSON.stringify(errorResult, null, 2) }] };
     }
   }
 
-  private async handleExplainSecurity(args: ExplainSecurityArgs): Promise<{ content: any[] }> {
+  private async handleExplainSecurity(args: ExplainSecurityArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Explain security tool called', { args });
 
     try {
@@ -2216,7 +2263,7 @@ export function ComponentName({ id, optional = false }: Props) {
       };
 
       logger.info(`Security explanation generated for ${component}. Found ${vulnerabilities.length} vulnerabilities`);
-      return { content: [result] };
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
 
     } catch (error) {
       logger.error('Error in explain_security:', error);
@@ -2238,12 +2285,12 @@ export function ComponentName({ id, optional = false }: Props) {
         recommendations: ['Fix the analysis error and try again']
       };
 
-      return { content: [errorResult] };
+      return { content: [{ type: "text", text: JSON.stringify(errorResult, null, 2) }] };
     }
   }
 
   // Real-time Intelligence Tool Handlers
-  private async handleValidateAsTyped(args: ValidateAsTypedArgs): Promise<{ content: any[] }> {
+  private async handleValidateAsTyped(args: ValidateAsTypedArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Validate as typed tool called', { filePath: args.filePath });
 
     try {
@@ -2258,22 +2305,25 @@ export function ComponentName({ id, optional = false }: Props) {
         ? await this.realtimeTools.validateAsTyped(args)
         : await this.basicValidation(filePath, content, line, column);
 
-      return { content: [validation] };
+      return { content: [{ type: "text", text: JSON.stringify(validation, null, 2) }] };
     } catch (error) {
       logger.error('Error in validate_as_typed:', error);
       return {
         content: [{
-          success: false,
-          filePath: args.filePath,
-          error: error instanceof Error ? error.message : String(error),
-          issues: [],
-          suggestions: []
+          type: "text",
+          text: JSON.stringify({
+            success: false,
+            filePath: args.filePath,
+            error: error instanceof Error ? error.message : String(error),
+            issues: [],
+            suggestions: []
+          }, null, 2)
         }]
       };
     }
   }
 
-  private async handleSuggestNext(args: SuggestNextArgs): Promise<{ content: any[] }> {
+  private async handleSuggestNext(args: SuggestNextArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Suggest next tool called', { filePath: args.filePath });
 
     try {
@@ -2281,21 +2331,24 @@ export function ComponentName({ id, optional = false }: Props) {
         ? await this.realtimeTools.suggestNext(args)
         : await this.basicSuggestion(args);
 
-      return { content: [suggestion] };
+      return { content: [{ type: "text", text: JSON.stringify(suggestion, null, 2) }] };
     } catch (error) {
       logger.error('Error in suggest_next:', error);
       return {
         content: [{
-          success: false,
-          filePath: args.filePath,
-          error: error instanceof Error ? error.message : String(error),
-          suggestions: []
+          type: "text",
+          text: JSON.stringify({
+            success: false,
+            filePath: args.filePath,
+            error: error instanceof Error ? error.message : String(error),
+            suggestions: []
+          }, null, 2)
         }]
       };
     }
   }
 
-  private async handlePreventError(args: PreventErrorArgs): Promise<{ content: any[] }> {
+  private async handlePreventError(args: PreventErrorArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Prevent error tool called', { filePath: args.filePath });
 
     try {
@@ -2303,21 +2356,24 @@ export function ComponentName({ id, optional = false }: Props) {
         ? await this.realtimeTools.preventError(args)
         : await this.basicErrorPrevention(args);
 
-      return { content: [errorPrevention] };
+      return { content: [{ type: "text", text: JSON.stringify(errorPrevention, null, 2) }] };
     } catch (error) {
       logger.error('Error in prevent_error:', error);
       return {
         content: [{
-          success: false,
-          filePath: args.filePath,
-          error: error instanceof Error ? error.message : String(error),
-          potentialErrors: []
+          type: "text",
+          text: JSON.stringify({
+            success: false,
+            filePath: args.filePath,
+            error: error instanceof Error ? error.message : String(error),
+            potentialErrors: []
+          }, null, 2)
         }]
       };
     }
   }
 
-  private async handleQuickFix(args: QuickFixArgs): Promise<{ content: any[] }> {
+  private async handleQuickFix(args: QuickFixArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Quick fix tool called', { filePath: args.filePath, issueId: args.issueId });
 
     try {
@@ -2325,22 +2381,25 @@ export function ComponentName({ id, optional = false }: Props) {
         ? await this.realtimeTools.quickFix(args)
         : await this.basicQuickFix(args);
 
-      return { content: [quickFix] };
+      return { content: [{ type: "text", text: JSON.stringify(quickFix, null, 2) }] };
     } catch (error) {
       logger.error('Error in quick_fix:', error);
       return {
         content: [{
-          success: false,
-          filePath: args.filePath,
-          issueId: args.issueId,
-          error: error instanceof Error ? error.message : String(error),
-          fixes: []
+          type: "text",
+          text: JSON.stringify({
+            success: false,
+            filePath: args.filePath,
+            issueId: args.issueId,
+            error: error instanceof Error ? error.message : String(error),
+            fixes: []
+          }, null, 2)
         }]
       };
     }
   }
 
-  private async handleExplainWarning(args: ExplainWarningArgs): Promise<{ content: any[] }> {
+  private async handleExplainWarning(args: ExplainWarningArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Explain warning tool called', { issueId: args.issueId });
 
     try {
@@ -2348,21 +2407,24 @@ export function ComponentName({ id, optional = false }: Props) {
         ? await this.realtimeTools.explainWarning(args)
         : await this.basicExplanation(args);
 
-      return { content: [explanation] };
+      return { content: [{ type: "text", text: JSON.stringify(explanation, null, 2) }] };
     } catch (error) {
       logger.error('Error in explain_warning:', error);
       return {
         content: [{
-          success: false,
-          issueId: args.issueId,
-          error: error instanceof Error ? error.message : String(error),
-          explanation: 'Unable to provide explanation at this time'
+          type: "text",
+          text: JSON.stringify({
+            success: false,
+            issueId: args.issueId,
+            error: error instanceof Error ? error.message : String(error),
+            explanation: 'Unable to provide explanation at this time'
+          }, null, 2)
         }]
       };
     }
   }
 
-  private async handleStartWatching(args: StartWatchingArgs): Promise<{ content: any[] }> {
+  private async handleStartWatching(args: StartWatchingArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Start watching tool called', { projectPath: args.projectPath });
 
     try {
@@ -2370,21 +2432,24 @@ export function ComponentName({ id, optional = false }: Props) {
         ? await this.realtimeTools.startWatching(args)
         : await this.basicStartWatching(args);
 
-      return { content: [watchResult] };
+      return { content: [{ type: "text", text: JSON.stringify(watchResult, null, 2) }] };
     } catch (error) {
       logger.error('Error in start_watching:', error);
       return {
         content: [{
-          success: false,
-          projectPath: args.projectPath,
-          error: error instanceof Error ? error.message : String(error),
-          watching: false
+          type: "text",
+          text: JSON.stringify({
+            success: false,
+            projectPath: args.projectPath,
+            error: error instanceof Error ? error.message : String(error),
+            watching: false
+          }, null, 2)
         }]
       };
     }
   }
 
-  private async handleStopWatching(args: StopWatchingArgs): Promise<{ content: any[] }> {
+  private async handleStopWatching(args: StopWatchingArgs): Promise<{ content: Array<{ type: string; text: string; }> }> {
     logger.info('Stop watching tool called', { projectPath: args.projectPath });
 
     try {
@@ -2392,14 +2457,17 @@ export function ComponentName({ id, optional = false }: Props) {
         ? await this.realtimeTools.stopWatching(args)
         : await this.basicStopWatching(args);
 
-      return { content: [stopResult] };
+      return { content: [{ type: "text", text: JSON.stringify(stopResult, null, 2) }] };
     } catch (error) {
       logger.error('Error in stop_watching:', error);
       return {
         content: [{
-          success: false,
-          projectPath: args.projectPath,
-          error: error instanceof Error ? error.message : String(error)
+          type: "text",
+          text: JSON.stringify({
+            success: false,
+            projectPath: args.projectPath,
+            error: error instanceof Error ? error.message : String(error)
+          }, null, 2)
         }]
       };
     }

@@ -46,6 +46,10 @@ export interface Pattern {
   example_file?: string;
   example_line?: number;
   confidence_threshold: number;
+  confidence?: number; // Pattern match confidence
+  template?: string; // Code template for auto-fix
+  tags?: string[]; // Pattern tags for categorization
+  usageCount?: number; // Computed field, not stored in database
   is_approved: boolean;
 }
 
@@ -403,7 +407,7 @@ export class DatabaseManager {
       pattern.example_file || null,
       pattern.example_line || null,
       pattern.confidence_threshold,
-      pattern.is_approved
+      pattern.is_approved ? 1 : 0
     );
     
     return result.lastInsertRowid as number;
@@ -504,6 +508,10 @@ export class DatabaseManager {
   }
 
   getDatabase(): Database.Database {
+    return this.db;
+  }
+
+  getDb(): Database.Database {
     return this.db;
   }
 

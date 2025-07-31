@@ -438,16 +438,9 @@ Enable detailed logging:
 
 ### Community Support
 
-- GitHub Issues: [Create an issue](https://github.com/your-org/codebase-intelligence/issues)
+- GitHub Issues: [Create an issue](https://github.com/jasonkline/codebase-intelligence/issues)
 - Documentation: Check the README.md and examples/
-- Discord: Join our community server (link in README)
-
-### Professional Support
-
-For enterprise deployments and custom integrations:
-- Email: support@codebase-intelligence.com
-- Slack: Join our enterprise Slack channel
-- Priority support available with enterprise license
+- Project Repository: [GitHub](https://github.com/jasonkline/codebase-intelligence)
 
 ## Maintenance
 

@@ -10,160 +10,110 @@ Get up and running with Codebase Intelligence in 5 minutes.
 
 ## 1. Install Codebase Intelligence
 
-### Option A: Automated Installation (Recommended)
 ```bash
-curl -fsSL https://install.codebase-intelligence.com | bash
+# Clone the repository
+git clone https://github.com/jasonkline/codebase-intelligence.git
+cd codebase-intelligence
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
 ```
 
-### Option B: npm Installation
-```bash
-npm install -g @codebase-intelligence/server
-```
+## 2. Configure Claude Code Integration
 
-### Option C: Download Binary
-```bash
-# Linux/macOS
-curl -L https://github.com/your-org/codebase-intelligence/releases/latest/download/codebase-intelligence-$(uname -s)-$(uname -m).tar.gz | tar -xz
-sudo mv codebase-intelligence /usr/local/bin/
-```
+Add Codebase Intelligence to your Claude Code MCP configuration.
 
-## 2. Initialize Your Project
+### Option A: Project-specific Configuration
 
-Navigate to your project directory and initialize:
-
-```bash
-cd /path/to/your/project
-codebase-intelligence init
-```
-
-This creates a `.codeintelligence.json` configuration file:
+Create `.mcp.json` in your project root:
 
 ```json
 {
-  "version": "1.0",
-  "analysis": {
-    "include": ["src/**/*.ts", "src/**/*.tsx"],
-    "exclude": ["node_modules/**", "**/*.test.ts"]
-  },
-  "patterns": {
-    "learningMode": "auto",
-    "categories": ["auth", "api", "data_access"]
-  },
-  "security": {
-    "enabled": true,
-    "scanOnSave": true
-  }
-}
-```
-
-## 3. Configure Claude Code Integration
-
-Add Codebase Intelligence to your Claude Code MCP configuration:
-
-```bash
-mkdir -p ~/.config/claude-code
-
-cat > ~/.config/claude-code/mcp.json << 'EOF'
-{
   "mcpServers": {
     "codebase-intelligence": {
-      "command": "codebase-intelligence",
-      "args": ["--stdio"],
+      "command": "node",
+      "args": ["/path/to/codebase-intelligence/dist/index.js"],
       "env": {
         "CI_PROJECT_PATH": "/path/to/your/project",
-        "CI_LOG_LEVEL": "info"
-      },
-      "description": "Intelligent codebase analysis and security scanning"
+        "NODE_ENV": "production",
+        "LOG_LEVEL": "info"
+      }
     }
   }
 }
-EOF
 ```
 
-**Important**: Replace `/path/to/your/project` with your actual project path.
+### Option B: Global Configuration
 
-## 4. Run Your First Analysis
+Add to your `~/.claude.json`:
 
-Test the installation:
-
-```bash
-# Test connectivity
-codebase-intelligence ping
-
-# Run initial analysis
-codebase-intelligence analyze
+```json
+{
+  "mcpServers": {
+    "codebase-intelligence": {
+      "command": "node",
+      "args": ["/path/to/codebase-intelligence/dist/index.js"],
+      "env": {
+        "CI_PROJECT_PATH": "/path/to/your/project",
+        "NODE_ENV": "production",
+        "LOG_LEVEL": "info"
+      }
+    }
+  }
+}
 ```
 
-You should see output like:
-```
-✓ Project analyzed successfully
-✓ Found 234 files, 1,456 symbols
-✓ Learned 23 patterns
-✓ Identified 3 security issues
-✓ Analysis completed in 12.3s
-```
+**Important**: Replace paths with your actual directories:
+- `/path/to/codebase-intelligence` → where you cloned this repository
+- `/path/to/your/project` → your project to analyze
 
-## 5. Start Using with Claude Code
+## 3. Test the Installation
 
-Open Claude Code and try these commands:
+1. **Restart Claude Code** to pick up the configuration changes
 
-### Basic Analysis
-```
-"Analyze this project for security issues and coding patterns"
-```
+2. **Test connectivity**:
+   ```
+   "Test the codebase intelligence connection"
+   ```
 
-### Security Check
+3. **Run initial analysis**:
+   ```
+   "Analyze this project for security issues and patterns"
+   ```
+
+You should see detailed analysis results with security findings, patterns, and recommendations.
+
+## 4. Example Usage
+
+### Security Analysis
 ```
 "Check this API directory for authentication vulnerabilities"
+"Scan for SQL injection risks in the database layer"
+"Are there any hardcoded secrets in this codebase?"
 ```
 
 ### Pattern Learning
 ```
 "Learn the coding patterns from this codebase"
+"What authentication patterns does this project use?"
+"How is error handling implemented across the codebase?"
 ```
 
 ### Real-time Help
 ```
 "Explain how authentication works in this application"
+"What would break if I modify this database schema?"
+"Help me write a new API endpoint following project conventions"
 ```
 
-## Quick Commands Reference
-
-### Analysis Commands
-```bash
-# Full project analysis
-codebase-intelligence analyze
-
-# Security-only scan
-codebase-intelligence security
-
-# Pattern learning
-codebase-intelligence patterns learn
-
-# Real-time watching
-codebase-intelligence watch
-```
-
-### Utility Commands
-```bash
-# Check system health
-codebase-intelligence health
-
-# View configuration
-codebase-intelligence config show
-
-# Check version
-codebase-intelligence --version
-
-# Get help
-codebase-intelligence --help
-```
-
-## Example: Analyzing a Next.js Project
+## 5. Example: Analyzing a Next.js Project
 
 Let's walk through analyzing a typical Next.js project:
 
-### 1. Project Structure
+### Project Structure
 ```
 my-nextjs-app/
 ├── app/
@@ -177,53 +127,36 @@ my-nextjs-app/
 └── package.json
 ```
 
-### 2. Configuration
+### Configuration
+Create `.mcp.json` in your Next.js project:
+
 ```json
 {
-  "version": "1.0",
-  "project": {
-    "name": "My Next.js App",
-    "framework": "nextjs"
-  },
-  "analysis": {
-    "include": [
-      "app/**/*.ts",
-      "app/**/*.tsx", 
-      "lib/**/*.ts",
-      "components/**/*.ts"
-    ],
-    "exclude": [
-      "node_modules/**",
-      ".next/**",
-      "**/*.test.ts"
-    ]
-  },
-  "patterns": {
-    "categories": ["auth", "api", "data_access", "components"]
-  },
-  "security": {
-    "enabled": true,
-    "categories": {
-      "authentication": true,
-      "authorization": true,
-      "injection": true
+  "mcpServers": {
+    "codebase-intelligence": {
+      "command": "node",
+      "args": ["/Users/yourname/codebase-intelligence/dist/index.js"],
+      "env": {
+        "CI_PROJECT_PATH": "/Users/yourname/my-nextjs-app",
+        "NODE_ENV": "production",
+        "LOG_LEVEL": "info"
+      }
     }
   }
 }
 ```
 
-### 3. Run Analysis
-```bash
-codebase-intelligence analyze --verbose
+### Run Analysis
+```
+"Analyze this Next.js project for security patterns and vulnerabilities"
 ```
 
-### 4. Example Claude Code Interactions
+### Example Results
+Claude Code will return detailed analysis like:
 
 **Security Analysis:**
 ```
-User: "Check my API routes for security issues"
-
-Response: I found 3 security issues in your API routes:
+Found 3 security issues in your API routes:
 1. Missing authentication in app/api/users/route.ts:15
 2. Direct database access without RLS in app/api/auth/route.ts:23  
 3. Potential SQL injection in lib/database.ts:45
@@ -236,9 +169,7 @@ Recommendations:
 
 **Pattern Recognition:**
 ```
-User: "What coding patterns does this project follow?"
-
-Response: I've identified these patterns in your codebase:
+Identified these patterns in your codebase:
 - Authentication: Uses Supabase Auth with custom middleware
 - API Routes: Standard Next.js 13+ app directory structure
 - Database: PostgreSQL with Row Level Security (RLS)
@@ -247,60 +178,42 @@ Response: I've identified these patterns in your codebase:
 Your code follows these patterns consistently across 89% of files.
 ```
 
-## Common First-Time Issues
+## Troubleshooting
 
-### Issue: "Command not found"
-```bash
-# Check if binary is in PATH
-which codebase-intelligence
+### Issue: "Failed to reconnect to codebase-intelligence"
 
-# If not found, add to PATH
-export PATH=$PATH:/usr/local/bin
-```
+**Solution:**
+1. Check that the paths in your MCP config are correct and absolute
+2. Ensure the project was built: `npm run build`
+3. Verify the `CI_PROJECT_PATH` points to your actual project
+4. Restart Claude Code after configuration changes
 
-### Issue: "Project path not set"
-```bash
-# Set the project path environment variable
-export CI_PROJECT_PATH="/path/to/your/project"
+### Issue: "CI_PROJECT_PATH environment variable not set"
 
-# Or use the --project flag
-codebase-intelligence analyze --project /path/to/your/project
-```
+**Solution:**
+Make sure your MCP configuration includes the `CI_PROJECT_PATH` environment variable pointing to your project directory.
 
 ### Issue: "Permission denied"
+
+**Solution:**
 ```bash
-# Fix binary permissions
-chmod +x /usr/local/bin/codebase-intelligence
-
-# Fix config file permissions
-chmod 644 .codeintelligence.json
-```
-
-### Issue: "Claude Code not connecting"
-```bash
-# Test MCP connectivity directly
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | codebase-intelligence --stdio
-
-# Check MCP configuration
-cat ~/.config/claude-code/mcp.json
+# Fix file permissions
+chmod +x /path/to/codebase-intelligence/dist/index.js
 ```
 
 ## Next Steps
 
 Now that you have Codebase Intelligence running:
 
-1. **[Configure for your needs](./configuration.md)** - Customize settings for your project
-2. **[Explore security features](./security-analysis.md)** - Deep dive into vulnerability detection
-3. **[Learn pattern recognition](./pattern-recognition.md)** - Understand the pattern system
-4. **[Set up real-time features](./realtime-intelligence.md)** - Enable live code assistance
-5. **[Optimize performance](./performance.md)** - Tune for large codebases
+1. **Explore security features** - Try different security analysis commands
+2. **Learn project patterns** - Let it analyze your coding conventions
+3. **Get real-time help** - Ask questions about your architecture
+4. **Use for code reviews** - Get intelligent suggestions for improvements
 
 ## Getting Help
 
-- **Documentation**: Browse this documentation site
-- **Issues**: [GitHub Issues](https://github.com/your-org/codebase-intelligence/issues)
-- **Discord**: [Community Discord](https://discord.gg/codebase-intelligence)
-- **Email**: support@codebase-intelligence.com
+- **Issues**: [GitHub Issues](https://github.com/jasonkline/codebase-intelligence/issues)
+- **Author**: Jason Kline <jason.kline@narwol.ai>
 
 ## Success! 🎉
 
@@ -313,7 +226,3 @@ You now have Codebase Intelligence analyzing your code and providing intelligent
 - ✅ Enforce governance rules
 
 Happy coding!
-
----
-
-*Completed the quick start? Check out our [advanced features guide](./architecture.md) to unlock the full power of Codebase Intelligence.*

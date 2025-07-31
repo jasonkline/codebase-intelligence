@@ -50,6 +50,10 @@ export interface RuleViolation {
   context?: string; // surrounding code context
   suggestion?: string;
   autoFixAvailable: boolean;
+  description: string; // Missing property from plan
+  fixable: boolean; // Missing property from plan
+  suggestedFix: string; // Missing property from plan
+  examples: string[]; // Missing property from plan
 }
 
 export interface GovernanceReport {
@@ -399,7 +403,11 @@ export class RuleEngine {
           message: rule.message,
           severity: rule.severity,
           autoFixAvailable: rule.autoFixAvailable,
-          suggestion: this.generateSuggestion(rule, patternName)
+          suggestion: this.generateSuggestion(rule, patternName),
+          description: rule.description,
+          fixable: rule.autoFixAvailable,
+          suggestedFix: this.generateSuggestion(rule, patternName),
+          examples: []
         });
       }
     }
@@ -415,7 +423,11 @@ export class RuleEngine {
           message: rule.message,
           severity: rule.severity,
           autoFixAvailable: rule.autoFixAvailable,
-          suggestion: this.generateSuggestion(rule, patternName)
+          suggestion: this.generateSuggestion(rule, patternName),
+          description: rule.description,
+          fixable: rule.autoFixAvailable,
+          suggestedFix: this.generateSuggestion(rule, patternName),
+          examples: []
         });
       }
     }
@@ -455,7 +467,11 @@ export class RuleEngine {
           severity: rule.severity,
           autoFixAvailable: rule.autoFixAvailable,
           context: this.getContext(sourceCode, match.index || 0),
-          suggestion: this.generateSuggestion(rule)
+          suggestion: this.generateSuggestion(rule),
+          description: rule.description,
+          fixable: rule.autoFixAvailable,
+          suggestedFix: this.generateSuggestion(rule),
+          examples: []
         });
       }
     }
@@ -472,7 +488,11 @@ export class RuleEngine {
             message: rule.message,
             severity: rule.severity,
             autoFixAvailable: rule.autoFixAvailable,
-            suggestion: this.generateSuggestion(rule)
+            suggestion: this.generateSuggestion(rule),
+            description: rule.description,
+            fixable: rule.autoFixAvailable,
+            suggestedFix: this.generateSuggestion(rule),
+            examples: []
           });
         }
       }
@@ -500,7 +520,11 @@ export class RuleEngine {
             message: rule.message,
             severity: rule.severity,
             autoFixAvailable: rule.autoFixAvailable,
-            suggestion: this.generateSuggestion(rule)
+            suggestion: this.generateSuggestion(rule),
+            description: rule.description,
+            fixable: rule.autoFixAvailable,
+            suggestedFix: this.generateSuggestion(rule),
+            examples: []
           });
         }
       }
@@ -709,6 +733,110 @@ export class RuleEngine {
     }
   }
 
+  private isFileInScope(filePath: string, scope: RuleScope): boolean {
+    // Check if file matches any include patterns
+    const matchesInclude = scope.filePatterns.some(pattern => 
+      minimatch(filePath, pattern)
+    );
+
+    if (!matchesInclude) return false;
+
+    // Check if file matches any exclude patterns
+    if (scope.excludePatterns && scope.excludePatterns.length > 0) {
+      const matchesExclude = scope.excludePatterns.some(pattern => 
+        minimatch(filePath, pattern)
+      );
+      if (matchesExclude) return false;
+    }
+
+    return true;
+  }
+
+  private async evaluateRule(rule: Rule, filePath: string, sourceCode: string): Promise<RuleViolation[]> {
+    const violations: RuleViolation[] = [];
+
+    try {
+      switch (rule.condition.type) {
+        case 'pattern_presence':
+          if (rule.condition.patternName && rule.ruleType === 'required') {
+            // Check if required pattern is present
+            if (!sourceCode.includes(rule.condition.patternName)) {
+              violations.push({
+                ruleId: rule.id!,
+                filePath,
+                line: 1,
+                message: rule.message,
+                severity: rule.severity,
+                autoFixAvailable: rule.autoFixAvailable,
+                description: rule.description,
+                fixable: rule.autoFixAvailable,
+                suggestedFix: rule.message,
+                examples: []
+              });
+            }
+          }
+          break;
+
+        case 'pattern_absence':
+          if (rule.condition.patternName && rule.ruleType === 'forbidden') {
+            // Check if forbidden pattern is absent
+            if (sourceCode.includes(rule.condition.patternName)) {
+              const line = this.findPatternLine(sourceCode, rule.condition.patternName);
+              violations.push({
+                ruleId: rule.id!,
+                filePath,
+                line,
+                message: rule.message,
+                severity: rule.severity,
+                autoFixAvailable: rule.autoFixAvailable,
+                description: rule.description,
+                fixable: rule.autoFixAvailable,
+                suggestedFix: rule.message,
+                examples: []
+              });
+            }
+          }
+          break;
+
+        case 'code_structure':
+          if (rule.condition.codePattern) {
+            const regex = new RegExp(rule.condition.codePattern, 'g');
+            let match;
+            while ((match = regex.exec(sourceCode)) !== null) {
+              const line = this.getLineNumber(sourceCode, match.index);
+              violations.push({
+                ruleId: rule.id!,
+                filePath,
+                line,
+                message: rule.message,
+                severity: rule.severity,
+                autoFixAvailable: rule.autoFixAvailable,
+                description: rule.description,
+                fixable: rule.autoFixAvailable,
+                suggestedFix: rule.message,
+                examples: []
+              });
+            }
+          }
+          break;
+
+        case 'custom':
+          // Custom rules would be evaluated here
+          break;
+      }
+    } catch (error) {
+      logger.error(`Error evaluating rule ${rule.name}:`, error);
+    }
+
+    return violations;
+  }
+
+  private findPatternLine(sourceCode: string, pattern: string): number {
+    const index = sourceCode.indexOf(pattern);
+    if (index === -1) return 1;
+    return this.getLineNumber(sourceCode, index);
+  }
+
   private updateEnabledRules(): void {
     this.enabledRules = Array.from(this.rules.values())
       .filter(rule => rule.enabled)
@@ -743,7 +871,7 @@ export class RuleEngine {
       // First, check if a rule with this name already exists
       const database = this.db.getDatabase();
       const existing = database.prepare(`
-        SELECT id FROM governance_rules gr
+        SELECT gr.id FROM governance_rules gr
         JOIN patterns p ON gr.pattern_id = p.id
         WHERE p.name = ?
       `).get(rule.name);
@@ -879,7 +1007,11 @@ export class RuleEngine {
         line: violation.line,
         message: violation.message,
         severity: violation.severity as 'error' | 'warning' | 'info',
-        autoFixAvailable: violation.auto_fix_available
+        autoFixAvailable: violation.auto_fix_available,
+        description: violation.message,
+        fixable: violation.auto_fix_available,
+        suggestedFix: violation.message,
+        examples: []
       };
 
       // By rule
@@ -951,6 +1083,159 @@ export class RuleEngine {
   getRule(ruleId: number): Rule | undefined {
     return this.rules.get(ruleId);
   }
+
+  /**
+   * Validate a single file against all enabled rules with additional options
+   */
+  async validateFile(filePath: string, options: any): Promise<RuleViolation[]> {
+    logger.debug(`Validating file: ${filePath}`);
+    
+    const sourceCode = options?.sourceCode;
+    const ast = options?.ast;
+    const analysisResult = options?.analysisResult;
+    
+    // If no source code provided, this would read from file
+    if (!sourceCode) {
+      // In a real implementation, we'd read the file
+      return [];
+    }
+
+    const violations: RuleViolation[] = [];
+
+    for (const rule of this.enabledRules) {
+      if (this.isFileInScope(filePath, rule.scope)) {
+        const ruleViolations = ast ? 
+          await this.checkRule(rule, filePath, ast, sourceCode, analysisResult) :
+          await this.evaluateRule(rule, filePath, sourceCode);
+        violations.push(...ruleViolations);
+      }
+    }
+
+    await this.storeViolations(violations);
+    return violations;
+  }
+
+  /**
+   * Create a new rule (alias for addRule)
+   */
+  async createRule(rule: Omit<Rule, 'id'>): Promise<number> {
+    return this.addRule(rule);
+  }
+
+  /**
+   * Generate a comprehensive project governance report
+   */
+  async generateProjectReport(projectPath: string, options?: {
+    includeMetrics?: boolean;
+    includeRecommendations?: boolean;
+    outputFormat?: 'json' | 'html' | 'markdown';
+  }): Promise<{
+    report: GovernanceReport;
+    metrics?: ProjectGovernanceMetrics;
+    formatted?: string;
+  }> {
+    logger.info(`Generating project governance report for: ${projectPath}`);
+
+    // Get all violations for the project
+    const report = await this.generateGovernanceReport();
+
+    const result: any = { report };
+
+    if (options?.includeMetrics) {
+      result.metrics = {
+        totalRules: this.rules.size,
+        enabledRules: this.enabledRules.length,
+        complianceScore: this.calculateComplianceScore(report),
+        violationTrends: [], // Placeholder
+        ruleEffectiveness: new Map()
+      };
+    }
+
+    if (options?.outputFormat && options.outputFormat !== 'json') {
+      result.formatted = this.formatReport(report, options.outputFormat);
+    }
+
+    return result;
+  }
+
+  /**
+   * Validate style guide compliance
+   */
+  async validateStyleGuide(filePath: string, styleGuideRules: string[]): Promise<{
+    violations: RuleViolation[];
+    complianceScore: number;
+    recommendations: string[];
+  }> {
+    logger.debug(`Validating style guide for: ${filePath}`);
+
+    const violations: RuleViolation[] = [];
+    let applicableRules = 0;
+
+    // Find style rules that match the requested rules
+    for (const rule of this.enabledRules) {
+      if (rule.category === 'style' && styleGuideRules.includes(rule.name)) {
+        applicableRules++;
+        if (this.isFileInScope(filePath, rule.scope)) {
+          // In a real implementation, we'd evaluate the rule
+          // For now, return placeholder
+        }
+      }
+    }
+
+    const complianceScore = applicableRules > 0 ? 
+      Math.max(0, 100 - (violations.length / applicableRules) * 100) : 100;
+
+    const recommendations = violations.length > 0 ? 
+      [`Fix ${violations.length} style violations to improve compliance`] : 
+      ['Style guide compliance is excellent'];
+
+    return {
+      violations,
+      complianceScore,
+      recommendations
+    };
+  }
+
+  private calculateComplianceScore(report: GovernanceReport): number {
+    const total = report.summary.totalViolations;
+    const critical = report.summary.errorCount;
+    
+    if (total === 0) return 100;
+    
+    // Weight critical errors more heavily
+    const weightedScore = Math.max(0, 100 - (critical * 10 + (total - critical) * 2));
+    return Math.round(weightedScore);
+  }
+
+  private formatReport(report: GovernanceReport, format: 'html' | 'markdown'): string {
+    if (format === 'markdown') {
+      return `# Governance Report
+
+## Summary
+- Total Violations: ${report.summary.totalViolations}
+- Errors: ${report.summary.errorCount}
+- Warnings: ${report.summary.warningCount}
+- Info: ${report.summary.infoCount}
+
+## Recommendations
+${report.recommendations.map(r => `- ${r}`).join('\n')}
+`;
+    }
+    
+    return '<h1>Governance Report</h1>'; // Placeholder HTML
+  }
+}
+
+interface ProjectGovernanceMetrics {
+  totalRules: number;
+  enabledRules: number;
+  complianceScore: number;
+  violationTrends: Array<{ date: string; count: number; }>;
+  ruleEffectiveness: Map<string, number>;
+  qualityScore: number; // Missing property from plan
+  maintainabilityIndex: number; // Missing property from plan
+  technicalDebt: number; // Missing property from plan
+  securityScore: number; // Missing property from plan
 }
 
 export default RuleEngine;

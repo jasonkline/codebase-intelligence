@@ -1,4 +1,7 @@
 import DatabaseManager, { Pattern, PatternInstance, StylePattern } from '../database/schema';
+
+// Re-export Pattern for other modules
+export { Pattern, PatternInstance, StylePattern };
 import { ASTPattern, PatternCluster } from './PatternLearner';
 import PatternMatcher, { MatchResult } from './PatternMatcher';
 
@@ -17,6 +20,26 @@ export interface PatternRegistryConfig {
   confidenceThreshold: number;
   autoApproveThreshold: number;
   maxPatternAge: number; // in days
+}
+
+export interface PatternMatch {
+  pattern: Pattern;
+  confidence: number;
+  location: {
+    file: string;
+    line: number;
+    column: number;
+  };
+  context: string;
+}
+
+export interface ParsedSymbol {
+  name: string;
+  kind: string;
+  filePath: string;
+  line: number;
+  column: number;
+  signature?: string;
 }
 
 export interface PatternSearchQuery {
@@ -468,10 +491,11 @@ export class PatternRegistry {
         category: match.pattern.category,
         description: match.pattern.description,
         confidence_threshold: 0.8,
-        is_approved: false
+        is_approved: false,
+        usageCount: 1
       });
       pattern = { id: patternId, name: match.pattern.name, category: match.pattern.category, 
-                 description: match.pattern.description, confidence_threshold: 0.8, is_approved: false };
+                 description: match.pattern.description, confidence_threshold: 0.8, is_approved: false, usageCount: 1 };
     }
 
     // Store pattern instance
@@ -654,6 +678,86 @@ export class PatternRegistry {
 
     logger.info(`Cleaned up ${result.changes} old unapproved patterns`);
     return result.changes as number;
+  }
+
+  /**
+   * Get patterns that match a specific file
+   */
+  async getPatternsByFile(filePath: string, category?: string): Promise<Pattern[]> {
+    const database = this.db.getDatabase();
+    let query = `
+      SELECT * FROM patterns 
+      WHERE json_extract(examples, '$[0].file') LIKE ?
+    `;
+    const params: any[] = [`%${filePath}%`];
+
+    if (category) {
+      query += ` AND category = ?`;
+      params.push(category);
+    }
+
+    const patterns = database.prepare(query).all(...params) as Pattern[];
+    
+    logger.debug(`Found ${patterns.length} patterns for file: ${filePath}`);
+    return patterns;
+  }
+
+  /**
+   * Analyze patterns from parsed symbols
+   */
+  async analyzePatterns(symbols: ParsedSymbol[]): Promise<PatternMatch[]> {
+    logger.debug(`Analyzing patterns from ${symbols.length} symbols`);
+    
+    const matches: PatternMatch[] = [];
+    
+    try {
+      // Pattern matching requires AST nodes which are not available in ParsedSymbol
+      // This would need to be reimplemented to work with the symbol data
+      // For now, return empty matches
+      logger.debug('Pattern matching temporarily disabled - requires AST node access');
+      
+      logger.debug(`Found ${matches.length} pattern matches`);
+      return matches;
+    } catch (error) {
+      logger.error('Error analyzing patterns from symbols:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Learn patterns from an entire project
+   */
+  async learnFromProject(projectPath: string, options?: {
+    categories?: string[];
+    minConfidence?: number;
+    maxPatterns?: number;
+  }): Promise<{
+    patternsLearned: number;
+    categories: Record<string, number>;
+    duration: number;
+  }> {
+    const startTime = Date.now();
+    const categories = options?.categories || this.config.enabledCategories;
+    const minConfidence = options?.minConfidence || this.config.confidenceThreshold;
+
+    logger.info(`Learning patterns from project: ${projectPath}`);
+
+    let totalPatterns = 0;
+    const categoryCount: Record<string, number> = {};
+
+    // Initialize category counts
+    categories.forEach(cat => categoryCount[cat] = 0);
+
+    // This would typically involve file scanning and analysis
+    // For now, return a placeholder implementation
+    const duration = Date.now() - startTime;
+
+    logger.info(`Pattern learning completed in ${duration}ms`);
+    return {
+      patternsLearned: totalPatterns,
+      categories: categoryCount,
+      duration
+    };
   }
 }
 

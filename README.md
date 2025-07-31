@@ -1,6 +1,6 @@
 # Codebase Intelligence
 
-An intelligent codebase analysis system that provides comprehensive code intelligence, pattern recognition, and security scanning capabilities through the Model Context Protocol (MCP).
+An intelligent codebase analysis system that provides comprehensive code intelligence, pattern recognition, and security scanning capabilities through the Model Context Protocol (MCP) for Claude Code.
 
 ## Overview
 
@@ -39,13 +39,19 @@ Codebase Intelligence acts as a "second brain" for Claude Code and developers, o
 - Flow diagrams and documentation generation
 - Technical debt tracking
 
-## Quick Start
+## Installation
 
-### Installation
+### Prerequisites
+
+- Node.js 16+ installed
+- A TypeScript/JavaScript project to analyze
+- Claude Code installed and configured
+
+### Quick Install
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/jasonkline/codebase-intelligence.git
 cd codebase-intelligence
 
 # Install dependencies
@@ -55,7 +61,81 @@ npm install
 npm run build
 ```
 
-### Development
+### Configure Claude Code MCP
+
+Add to your Claude Code MCP configuration (`.mcp.json` in your project or `~/.claude.json`):
+
+```json
+{
+  "mcpServers": {
+    "codebase-intelligence": {
+      "command": "node",
+      "args": ["/path/to/codebase-intelligence/dist/index.js"],
+      "env": {
+        "CI_PROJECT_PATH": "/path/to/your/project",
+        "NODE_ENV": "production",
+        "LOG_LEVEL": "info"
+      }
+    }
+  }
+}
+```
+
+**Important**: Replace `/path/to/codebase-intelligence` with the actual path where you cloned this repository, and `/path/to/your/project` with your project's path.
+
+### Test the Installation
+
+1. Restart Claude Code to pick up the new MCP configuration
+2. Test connectivity: `"Test the codebase intelligence connection"`
+3. Run analysis: `"Analyze this project for security issues"`
+
+## Usage
+
+### Security Analysis
+```
+"Check this code for security vulnerabilities"
+"Are there any authentication issues in my API?"
+"Scan for SQL injection risks"
+```
+
+### Pattern Recognition
+```
+"What coding patterns does this project use?"
+"Learn the architecture from this codebase"
+"How is data access handled here?"
+```
+
+### Knowledge Queries
+```
+"Explain how authentication works in this application"
+"What would break if I change this file?"
+"How are these components connected?"
+```
+
+### Real-time Intelligence
+```
+"Help me write code that follows this project's patterns"
+"Suggest improvements for this function"
+"What's the best way to add a new API endpoint?"
+```
+
+## MCP Tools Available
+
+The server exposes 21 MCP tools:
+
+- `ping` - Test connectivity
+- `analyze_project` - Full project analysis
+- `analyze_security` - Security vulnerability scanning
+- `check_auth_pattern` - Authentication pattern analysis
+- `find_vulnerabilities` - OWASP vulnerability detection
+- `learn_patterns` - Pattern recognition and learning
+- `explain_system` - System architecture explanation
+- `analyze_impact` - Change impact analysis
+- `get_system_docs` - Documentation generation
+- `trace_data_flow` - Data flow analysis
+- And 11 more specialized tools for governance, real-time assistance, and pattern compliance
+
+## Development
 
 ```bash
 # Run in development mode with hot reload
@@ -69,27 +149,10 @@ npm run test:coverage
 
 # Lint code
 npm run lint
+
+# Clean build artifacts
+npm run clean
 ```
-
-### MCP Integration
-
-1. **Add to Claude Code MCP Configuration**:
-   ```json
-   {
-     "mcpServers": {
-       "codebase-intelligence": {
-         "command": "node",
-         "args": ["/path/to/codebase-intelligence/dist/index.js"],
-         "env": {
-           "NODE_ENV": "production"
-         }
-       }
-     }
-   }
-   ```
-
-2. **Test the connection**:
-   The server exposes a `ping` tool for connectivity testing.
 
 ## Architecture
 
@@ -135,64 +198,9 @@ npm run lint
 - **Testing**: Jest
 - **Logging**: Winston
 
-## MCP Tools
-
-Currently available tools:
-
-### `ping`
-Test connectivity with the server.
-
-**Parameters:**
-- `message` (optional): Custom message to echo back
-
-**Example:**
-```typescript
-{
-  "name": "ping",
-  "arguments": {
-    "message": "Hello World"
-  }
-}
-```
-
-## Project Structure
-
-```
-codebase-intelligence/
-├── src/
-│   ├── index.ts              # MCP server entry point
-│   ├── mcp/                  # MCP protocol implementation
-│   │   └── server.ts
-│   ├── parser/               # AST parsing logic
-│   ├── patterns/             # Pattern recognition engine
-│   ├── security/             # Security analysis
-│   ├── knowledge/            # Knowledge base system
-│   ├── database/             # SQLite integration
-│   └── utils/                # Shared utilities
-│       └── logger.ts
-├── tests/                    # Test files
-├── docs/                     # Documentation
-├── package.json
-├── tsconfig.json
-├── jest.config.js
-└── README.md
-```
-
-## Development Roadmap
-
-The project is being developed in phases:
-
-1. **Phase 1**: System Analysis & Knowledge Extraction
-2. **Phase 2**: Security Analysis Engine
-3. **Phase 3**: Pattern Learning & Recognition
-4. **Phase 4**: Knowledge Query System
-5. **Phase 5**: Real-time Intelligence
-6. **Phase 6**: MCP Integration & UI
-7. **Phase 7**: Advanced Intelligence
-
 ## Configuration
 
-Configuration will be managed through `.codeintelligence.json`:
+The system can be configured through a `.codeintelligence.json` file in your project root:
 
 ```json
 {
@@ -211,6 +219,15 @@ Configuration will be managed through `.codeintelligence.json`:
   }
 }
 ```
+
+## Logging
+
+Logs are written to:
+- `logs/combined.log` - All log levels
+- `logs/error.log` - Error messages only
+- Console (development mode only)
+
+Log levels: `error`, `warn`, `info`, `debug`
 
 ## Contributing
 
@@ -233,23 +250,15 @@ npm run test:watch
 npm run test:coverage
 ```
 
-## Logging
+## Support
 
-Logs are written to:
-- `logs/combined.log` - All log levels
-- `logs/error.log` - Error messages only
-- Console (development mode only)
-
-Log levels: `error`, `warn`, `info`, `debug`
+- **Issues**: [GitHub Issues](https://github.com/jasonkline/codebase-intelligence/issues)
+- **Author**: Jason Kline <jason.kline@narwol.ai>
 
 ## License
 
 ISC License - see LICENSE file for details
 
-## Support
-
-For issues and feature requests, please use the GitHub issue tracker.
-
 ---
 
-**Note**: This project is under active development. APIs and interfaces may change as we implement the full feature set outlined in the development roadmap.
+**Note**: This is a working MCP server ready for production use with Claude Code. All documented features are implemented and tested.

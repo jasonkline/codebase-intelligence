@@ -45,7 +45,7 @@ export interface RefactoringLocation {
   lineStart: number;
   lineEnd: number;
   description: string;
-  changeType: 'modify' | 'add' | 'remove' | 'move';
+  changeType: 'replace' | 'insert' | 'delete' | 'move';
 }
 
 export interface CodeChange {
@@ -556,7 +556,7 @@ export class RefactoringAssistant {
               lineStart: func.lineStart,
               lineEnd: func.lineEnd,
               description: 'Original method will be modified',
-              changeType: 'modify'
+              changeType: 'replace'
             }],
             benefits: [
               'Improved readability',
@@ -607,7 +607,7 @@ export class RefactoringAssistant {
     const classes = symbols.filter(s => s.kind === 'class');
 
     for (const cls of classes) {
-      const methods = symbols.filter(s => s.kind === 'method' && s.parentSymbolId === cls.id);
+      const methods = symbols.filter(s => s.kind === 'method' && s.parentSymbolId === Number(cls.id));
       const lineCount = cls.lineEnd - cls.lineStart + 1;
 
       // Large class
@@ -637,7 +637,7 @@ export class RefactoringAssistant {
                 lineStart: cls.lineStart,
                 lineEnd: cls.lineEnd,
                 description: 'Original class will be modified',
-                changeType: 'modify'
+                changeType: 'replace'
               }],
               benefits: [
                 'Better separation of concerns',
@@ -772,7 +772,7 @@ export class RefactoringAssistant {
             lineStart: occ.start,
             lineEnd: occ.end,
             description: 'Duplicate code location',
-            changeType: 'modify' as const
+            changeType: 'replace' as const
           })),
           benefits: [
             'Eliminate duplication',
@@ -1339,7 +1339,7 @@ export class RefactoringAssistant {
         description: 'Create new extracted class'
       },
       {
-        type: 'modify',
+        type: 'replace',
         location: { filePath: cls.filePath, lineStart: cls.lineStart },
         description: 'Modify original class to use extracted class'
       }

@@ -754,7 +754,7 @@ export class TechnicalDebtTracker {
 
     for (const cls of classes) {
       const lineCount = cls.lineEnd - cls.lineStart + 1;
-      const methods = symbols.filter(s => s.kind === 'method' && s.parentSymbolId === cls.id);
+      const methods = symbols.filter(s => s.kind === 'method' && s.parentSymbolId === Number(cls.id));
       
       if (lineCount > 200 || methods.length > 15) {
         smells.push({
@@ -882,7 +882,7 @@ export class TechnicalDebtTracker {
     const classes = symbols.filter(s => s.kind === 'class');
 
     for (const cls of classes) {
-      const methods = symbols.filter(s => s.kind === 'method' && s.parentSymbolId === cls.id);
+      const methods = symbols.filter(s => s.kind === 'method' && s.parentSymbolId === Number(cls.id));
       const lineCount = cls.lineEnd - cls.lineStart + 1;
       
       // God class heuristic: large class with many responsibilities

@@ -6,6 +6,7 @@ import { ErrorPrevention, PotentialError, ErrorPrediction } from '../intelligenc
 import { PatternRegistry } from '../patterns/PatternRegistry';
 import { RuleEngine } from '../governance/RuleEngine';
 import { SecurityScanner } from '../security/SecurityScanner';
+import { ASTParser } from '../parser/ASTParser';
 import DatabaseManager from '../database/schema';
 import { logger } from '../utils/logger';
 
@@ -75,7 +76,8 @@ export class RealtimeTools {
       this.incrementalAnalyzer,
       this.patternRegistry,
       this.ruleEngine,
-      this.securityScanner
+      this.securityScanner,
+      new ASTParser()
     );
     this.smartSuggestions = new SmartSuggestions(
       this.incrementalAnalyzer,

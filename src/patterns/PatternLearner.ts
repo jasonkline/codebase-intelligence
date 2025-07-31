@@ -349,7 +349,8 @@ export class PatternLearner {
         ast_signature: JSON.stringify(cluster.canonicalPattern.structure),
         example_file: filePath,
         confidence_threshold: cluster.confidence,
-        is_approved: false // Learned patterns start as unapproved
+        is_approved: false, // Learned patterns start as unapproved
+        usageCount: 1 // Initialize with 1 usage
       };
 
       const patternId = this.db.insertPattern(pattern);

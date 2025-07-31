@@ -5,8 +5,10 @@ import { extname } from 'path';
 import logger from '../utils/logger';
 
 export interface ParsedSymbol {
+  id?: string;
   name: string;
   kind: string;
+  type?: string;
   filePath: string;
   lineStart: number;
   lineEnd: number;

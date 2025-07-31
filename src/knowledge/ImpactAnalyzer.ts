@@ -6,7 +6,7 @@ import logger from '../utils/logger';
 export interface ChangeImpactResult {
   changeId: string;
   targetComponent: string;
-  changeType: 'modify' | 'delete' | 'add' | 'refactor';
+  changeType: 'modify' | 'delete' | 'add';
   impactAnalysis: ImpactAnalysis;
   riskAssessment: RiskAssessment;
   testingPlan: TestingPlan;
@@ -168,7 +168,7 @@ export class ImpactAnalyzer {
 
   async analyzeChangeImpact(
     targetComponent: string, 
-    changeType: 'modify' | 'delete' | 'add' | 'refactor',
+    changeType: 'modify' | 'delete' | 'add',
     changeDescription?: string
   ): Promise<ChangeImpactResult> {
     try {
@@ -274,7 +274,7 @@ export class ImpactAnalyzer {
     }
 
     // API components may need versioning
-    if (targetNode.type === 'api') {
+    if (targetNode.name.toLowerCase().includes('api') || targetNode.type === 'component') {
       predictedChanges.push({
         component: targetNode.name,
         changeType: 'extension',
@@ -430,7 +430,7 @@ export class ImpactAnalyzer {
   // Private helper methods
   private async generateRiskAssessment(
     targetComponent: string, 
-    changeType: 'modify' | 'delete' | 'add' | 'refactor',
+    changeType: 'modify' | 'delete' | 'add',
     impactAnalysis: ImpactAnalysis
   ): Promise<RiskAssessment> {
     const riskFactors: RiskFactor[] = [];
@@ -496,7 +496,7 @@ export class ImpactAnalyzer {
 
     // Assess technical risk
     const technicalRisk: TechnicalRisk = {
-      breakingChanges: changeType === 'delete' || changeType === 'refactor',
+      breakingChanges: changeType === 'delete' || changeType === 'modify',
       apiCompatibility: changeType === 'delete' ? 'breaking' : 'maintained',
       databaseMigration: targetNode?.name.toLowerCase().includes('database') || false,
       configurationChanges: changeType !== 'add' ? ['Update deployment configuration'] : [],

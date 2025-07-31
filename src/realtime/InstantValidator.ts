@@ -2,7 +2,7 @@ import { IncrementalAnalyzer, AnalysisResult } from './IncrementalAnalyzer';
 import { PatternRegistry } from '../patterns/PatternRegistry';
 import { RuleEngine } from '../governance/RuleEngine';
 import { SecurityScanner } from '../security/SecurityScanner';
-import { ParsedSymbol } from '../parser/ASTParser';
+import { ParsedSymbol, ASTParser } from '../parser/ASTParser';
 import { logger } from '../utils/logger';
 
 export interface ValidationIssue {
@@ -64,7 +64,8 @@ export class InstantValidator {
     private incrementalAnalyzer: IncrementalAnalyzer,
     private patternRegistry: PatternRegistry,
     private ruleEngine: RuleEngine,
-    private securityScanner: SecurityScanner
+    private securityScanner: SecurityScanner,
+    private astParser: ASTParser
   ) {}
 
   async validateCode(context: ValidationContext): Promise<ValidationResult> {
@@ -216,11 +217,19 @@ export class InstantValidator {
     const issues: ValidationIssue[] = [];
 
     try {
+      // Parse content to get AST for rule engine
+      const parsedFile = await this.astParser.parseFile(context.filePath);
+      if (!parsedFile) {
+        logger.warn(`Could not parse ${context.filePath} for pattern validation`);
+        return issues;
+      }
+
       // Use rule engine to check pattern compliance
       const violations = await this.ruleEngine.checkCompliance(
         context.filePath,
+        parsedFile.ast,
         context.content,
-        analysisResult.symbols
+        undefined // analysisResult from pattern analysis
       );
 
       for (const violation of violations) {
@@ -232,9 +241,9 @@ export class InstantValidator {
           message: violation.message,
           description: violation.description,
           filePath: context.filePath,
-          line: violation.line,
-          column: violation.column,
-          rule: violation.ruleId,
+          line: violation.line || 1,
+          column: violation.column || 1,
+          rule: violation.ruleId.toString(),
           fixable: violation.fixable,
           suggestedFix: violation.suggestedFix,
           examples: violation.examples

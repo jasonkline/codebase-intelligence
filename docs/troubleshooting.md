@@ -58,12 +58,12 @@ bash: codebase-intelligence: command not found
 
 3. **Reinstall:**
    ```bash
-   # npm method
-   npm uninstall -g @codebase-intelligence/server
-   npm install -g @codebase-intelligence/server
-   
-   # Binary method
-   curl -fsSL https://install.codebase-intelligence.com | bash
+   # From source
+   git clone https://github.com/jasonkline/codebase-intelligence.git
+   cd codebase-intelligence
+   npm install
+   npm run build
+   ./setup-scripts/install.sh
    ```
 
 ### Issue: Permission Denied
@@ -86,13 +86,14 @@ bash: /usr/local/bin/codebase-intelligence: Permission denied
    sudo chown $(whoami) /usr/local/bin/codebase-intelligence
    ```
 
-3. **Install without sudo:**
+3. **Install in user directory:**
    ```bash
-   # Use npm with user directory
-   mkdir ~/.npm-global
-   npm config set prefix '~/.npm-global'
-   export PATH=~/.npm-global/bin:$PATH
-   npm install -g @codebase-intelligence/server
+   # Clone to user directory
+   git clone https://github.com/jasonkline/codebase-intelligence.git ~/.codebase-intelligence-source
+   cd ~/.codebase-intelligence-source
+   npm install
+   npm run build
+   ./setup-scripts/install.sh --install-dir ~/.codebase-intelligence
    ```
 
 ### Issue: Node.js Version Too Old
@@ -348,7 +349,11 @@ Error: MCP server timeout after 30s
 
 3. **Update to latest version:**
    ```bash
-   npm update -g @codebase-intelligence/server
+   cd /path/to/codebase-intelligence
+   git pull origin main
+   npm install
+   npm run build
+   ./setup-scripts/install.sh
    ```
 
 ## Performance Issues
@@ -697,10 +702,8 @@ tail -n 50 ~/.codebase-intelligence/logs/error.log >> diagnostic-report.txt
 ### Support Channels
 
 1. **Documentation**: Browse this documentation site
-2. **GitHub Issues**: [Report bugs and issues](https://github.com/your-org/codebase-intelligence/issues)
-3. **Discord Community**: [Get community help](https://discord.gg/codebase-intelligence)
-4. **Discussions**: [GitHub Discussions](https://github.com/your-org/codebase-intelligence/discussions)
-5. **Enterprise Support**: enterprise@codebase-intelligence.com
+2. **GitHub Issues**: [Report bugs and issues](https://github.com/jasonkline/codebase-intelligence/issues)
+3. **Project Repository**: [GitHub](https://github.com/jasonkline/codebase-intelligence)
 
 ### Issue Templates
 
@@ -754,4 +757,4 @@ tail -n 50 ~/.codebase-intelligence/logs/error.log >> diagnostic-report.txt
 
 ---
 
-*Still need help? Join our [Discord community](https://discord.gg/codebase-intelligence) or [create an issue](https://github.com/your-org/codebase-intelligence/issues/new) on GitHub.*
+*Still need help? [Create an issue](https://github.com/jasonkline/codebase-intelligence/issues/new) on GitHub.*

@@ -3,12 +3,14 @@ import { EventEmitter } from 'events';
 import path from 'path';
 import fs from 'fs/promises';
 import crypto from 'crypto';
-import { logger } from '../utils/logger';
+import logger from '../utils/logger';
+
+import { Stats } from 'fs';
 
 export interface FileChange {
   type: 'add' | 'change' | 'unlink' | 'addDir' | 'unlinkDir';
   path: string;
-  stats?: fs.Stats;
+  stats?: Stats;
   hash?: string;
   timestamp: number;
 }
@@ -34,7 +36,7 @@ interface PendingChange {
 }
 
 export class FileWatcher extends EventEmitter {
-  private watcher: chokidar.FSWatcher | null = null;
+  private watcher: ReturnType<typeof chokidar.watch> | null = null;
   private pendingChanges = new Map<string, PendingChange>();
   private batchTimer: NodeJS.Timeout | null = null;
   private fileHistory = new Map<string, FileHistory>();
@@ -253,7 +255,7 @@ export class FileWatcher extends EventEmitter {
   private async handleFileChange(
     type: FileChange['type'],
     filePath: string,
-    stats?: fs.Stats
+    stats?: Stats
   ): Promise<void> {
     try {
       const absolutePath = path.resolve(filePath);

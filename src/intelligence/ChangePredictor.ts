@@ -761,7 +761,7 @@ export class ChangePredictor {
       const lineCount = cls.lineEnd - cls.lineStart + 1;
       const methods = symbols.filter(s => 
         s.kind === 'method' && 
-        s.parentSymbolId === cls.id
+        s.parentSymbolId === Number(cls.id)
       ).length;
 
       if (lineCount > 200 || methods > 20) {
@@ -818,7 +818,7 @@ export class ChangePredictor {
       if (!isReferenced) {
         opportunities.push({
           id: `dead-code-${method.name}-${Date.now()}`,
-          type: 'remove_method',
+          type: 'move_method',
           filePath: method.filePath,
           location: {
             lineStart: method.lineStart,

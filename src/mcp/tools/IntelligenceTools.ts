@@ -619,8 +619,11 @@ export class IntelligenceTools {
   // Change Prediction Handlers
   private async handlePredictChanges(args: any) {
     const { filePath, timeframe = 'short' } = args;
-    const symbols = await this.astParser.parseFile(filePath);
-    const predictions = await this.changePredictor.predictChanges(filePath, symbols);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
+    const predictions = await this.changePredictor.predictChanges(filePath, parsedFile.symbols);
     
     return {
       filePath,
@@ -636,22 +639,28 @@ export class IntelligenceTools {
 
   private async handleIdentifyRefactoringOpportunities(args: any) {
     const { filePath, priority = 'low' } = args;
-    const symbols = await this.astParser.parseFile(filePath);
-    const opportunities = await this.changePredictor.identifyRefactoringOpportunities(filePath, symbols);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
+    const opportunities = await this.changePredictor.identifyRefactoringOpportunities(filePath, parsedFile.symbols);
     
     const priorityWeights = { low: 1, medium: 2, high: 3, critical: 4 };
     const minWeight = priorityWeights[priority as keyof typeof priorityWeights];
     
     return {
       filePath,
-      opportunities: opportunities.filter(o => priorityWeights[o.priority] >= minWeight),
+      opportunities: opportunities.filter(o => {
+        const priorityKey = String(o.priority) as keyof typeof priorityWeights;
+        return priorityWeights[priorityKey] >= minWeight;
+      }),
       summary: {
         totalOpportunities: opportunities.length,
         byPriority: {
-          critical: opportunities.filter(o => o.priority === 'critical').length,
-          high: opportunities.filter(o => o.priority === 'high').length,
-          medium: opportunities.filter(o => o.priority === 'medium').length,
-          low: opportunities.filter(o => o.priority === 'low').length
+          critical: opportunities.filter(o => String(o.priority) === 'critical').length,
+          high: opportunities.filter(o => String(o.priority) === 'high').length,
+          medium: opportunities.filter(o => String(o.priority) === 'medium').length,
+          low: opportunities.filter(o => String(o.priority) === 'low').length
         }
       }
     };
@@ -683,8 +692,11 @@ export class IntelligenceTools {
   // Technical Debt Handlers
   private async handleAnalyzeDebt(args: any) {
     const { filePath, includeMetrics = true, includeSmells = true } = args;
-    const symbols = await this.astParser.parseFile(filePath);
-    const analysis = await this.debtTracker.analyzeFile(filePath, symbols);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
+    const analysis = await this.debtTracker.analyzeFile(filePath, parsedFile.symbols);
     
     const result: any = {
       filePath,
@@ -735,9 +747,12 @@ export class IntelligenceTools {
   // Test Intelligence Handlers
   private async handleAnalyzeTestCoverage(args: any) {
     const { filePath, testFilePath } = args;
-    const symbols = await this.astParser.parseFile(filePath);
-    const coverage = await this.testIntelligence.analyzeCoverage(filePath, symbols);
-    const gaps = await this.testIntelligence.identifyCoverageGaps(filePath, symbols, coverage);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
+    const coverage = await this.testIntelligence.analyzeCoverage(filePath, parsedFile.symbols);
+    const gaps = await this.testIntelligence.identifyCoverageGaps(filePath, parsedFile.symbols, coverage);
     
     return {
       filePath,
@@ -754,10 +769,13 @@ export class IntelligenceTools {
 
   private async handleSuggestTests(args: any) {
     const { filePath, testType, maxSuggestions = 10 } = args;
-    const symbols = await this.astParser.parseFile(filePath);
-    const coverage = await this.testIntelligence.analyzeCoverage(filePath, symbols);
-    const gaps = await this.testIntelligence.identifyCoverageGaps(filePath, symbols, coverage);
-    const suggestions = await this.testIntelligence.generateTestSuggestions(filePath, symbols, gaps);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
+    const coverage = await this.testIntelligence.analyzeCoverage(filePath, parsedFile.symbols);
+    const gaps = await this.testIntelligence.identifyCoverageGaps(filePath, parsedFile.symbols, coverage);
+    const suggestions = await this.testIntelligence.generateTestSuggestions(filePath, parsedFile.symbols, gaps);
     
     let filteredSuggestions = suggestions;
     if (testType) {
@@ -803,8 +821,11 @@ export class IntelligenceTools {
 
   private async handleIdentifyMissingEdgeCases(args: any) {
     const { filePath, functionName } = args;
-    const symbols = await this.astParser.parseFile(filePath);
-    const edgeCases = await this.testIntelligence.identifyMissingEdgeCases(filePath, symbols);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
+    const edgeCases = await this.testIntelligence.identifyMissingEdgeCases(filePath, parsedFile.symbols);
     
     let filteredEdgeCases = edgeCases;
     if (functionName) {
@@ -830,8 +851,11 @@ export class IntelligenceTools {
   // Performance Analysis Handlers
   private async handleAnalyzePerformance(args: any) {
     const { filePath, includeOptimizations = true, includeCaching = true, includeAsync = true } = args;
-    const symbols = await this.astParser.parseFile(filePath);
-    const analysis = await this.performanceAnalyzer.analyzePerformance(filePath, symbols);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
+    const analysis = await this.performanceAnalyzer.analyzePerformance(filePath, parsedFile.symbols);
     
     const result: any = {
       filePath,
@@ -860,8 +884,11 @@ export class IntelligenceTools {
 
   private async handleAnalyzeMemory(args: any) {
     const { filePath } = args;
-    const symbols = await this.astParser.parseFile(filePath);
-    const analysis = await this.performanceAnalyzer.analyzeMemory(filePath, symbols);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
+    const analysis = await this.performanceAnalyzer.analyzeMemory(filePath, parsedFile.symbols);
     
     return {
       filePath,
@@ -893,8 +920,11 @@ export class IntelligenceTools {
 
   private async handleOptimizePerformance(args: any) {
     const { filePath, category, priority = 'low' } = args;
-    const symbols = await this.astParser.parseFile(filePath);
-    const analysis = await this.performanceAnalyzer.analyzePerformance(filePath, symbols);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
+    const analysis = await this.performanceAnalyzer.analyzePerformance(filePath, parsedFile.symbols);
     
     let optimizations = analysis.suggestions;
     
@@ -921,8 +951,11 @@ export class IntelligenceTools {
   // Refactoring Handlers
   private async handleSuggestRefactoring(args: any) {
     const { filePath, refactoringType, priority = 'low', safetyLevel = 'dangerous' } = args;
-    const symbols = await this.astParser.parseFile(filePath);
-    const suggestions = await this.refactoringAssistant.analyzeRefactoringOpportunities(filePath, symbols);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
+    const suggestions = await this.refactoringAssistant.analyzeRefactoringOpportunities(filePath, parsedFile.symbols);
     
     let filteredSuggestions = suggestions;
     
@@ -1037,7 +1070,10 @@ export class IntelligenceTools {
       includePredictions = true
     } = args;
 
-    const symbols = await this.astParser.parseFile(filePath);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
     const result: any = {
       filePath,
       analyzedAt: new Date().toISOString(),
@@ -1045,7 +1081,7 @@ export class IntelligenceTools {
     };
 
     if (includeDebt) {
-      const debtAnalysis = await this.debtTracker.analyzeFile(filePath, symbols);
+      const debtAnalysis = await this.debtTracker.analyzeFile(filePath, parsedFile.symbols);
       result.technicalDebt = {
         smells: debtAnalysis.smells,
         metrics: debtAnalysis.metrics,
@@ -1058,7 +1094,7 @@ export class IntelligenceTools {
     }
 
     if (includePerformance) {
-      const perfAnalysis = await this.performanceAnalyzer.analyzePerformance(filePath, symbols);
+      const perfAnalysis = await this.performanceAnalyzer.analyzePerformance(filePath, parsedFile.symbols);
       result.performance = {
         issues: perfAnalysis.issues,
         suggestions: perfAnalysis.suggestions
@@ -1070,8 +1106,8 @@ export class IntelligenceTools {
     }
 
     if (includeTests) {
-      const coverage = await this.testIntelligence.analyzeCoverage(filePath, symbols);
-      const gaps = await this.testIntelligence.identifyCoverageGaps(filePath, symbols, coverage);
+      const coverage = await this.testIntelligence.analyzeCoverage(filePath, parsedFile.symbols);
+      const gaps = await this.testIntelligence.identifyCoverageGaps(filePath, parsedFile.symbols, coverage);
       result.testing = { coverage, gaps };
       result.summary.testing = {
         overallCoverage: coverage.overallCoverage,
@@ -1080,7 +1116,7 @@ export class IntelligenceTools {
     }
 
     if (includeRefactoring) {
-      const refactoringSuggestions = await this.refactoringAssistant.analyzeRefactoringOpportunities(filePath, symbols);
+      const refactoringSuggestions = await this.refactoringAssistant.analyzeRefactoringOpportunities(filePath, parsedFile.symbols);
       result.refactoring = { suggestions: refactoringSuggestions };
       result.summary.refactoring = {
         totalSuggestions: refactoringSuggestions.length,
@@ -1089,7 +1125,7 @@ export class IntelligenceTools {
     }
 
     if (includePredictions) {
-      const predictions = await this.changePredictor.predictChanges(filePath, symbols);
+      const predictions = await this.changePredictor.predictChanges(filePath, parsedFile.symbols);
       result.predictions = { changes: predictions };
       result.summary.predictions = {
         totalPredictions: predictions.length,
@@ -1105,12 +1141,15 @@ export class IntelligenceTools {
 
   private async handlePredictBugs(args: any) {
     const { filePath, confidence = 0.7 } = args;
-    const symbols = await this.astParser.parseFile(filePath);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
     
     // Combine multiple analysis types to predict bugs
-    const debtAnalysis = await this.debtTracker.analyzeFile(filePath, symbols);
-    const perfAnalysis = await this.performanceAnalyzer.analyzePerformance(filePath, symbols);
-    const predictions = await this.changePredictor.predictChanges(filePath, symbols);
+    const debtAnalysis = await this.debtTracker.analyzeFile(filePath, parsedFile.symbols);
+    const perfAnalysis = await this.performanceAnalyzer.analyzePerformance(filePath, parsedFile.symbols);
+    const predictions = await this.changePredictor.predictChanges(filePath, parsedFile.symbols);
     
     const bugPredictions = this.combineBugPredictions(debtAnalysis, perfAnalysis, predictions, confidence);
     
@@ -1129,8 +1168,11 @@ export class IntelligenceTools {
 
   private async handleGetQualityMetrics(args: any) {
     const { filePath, includeHistory = false } = args;
-    const symbols = await this.astParser.parseFile(filePath);
-    const debtAnalysis = await this.debtTracker.analyzeFile(filePath, symbols);
+    const parsedFile = await this.astParser.parseFile(filePath);
+    if (!parsedFile) {
+      throw new Error(`Failed to parse file: ${filePath}`);
+    }
+    const debtAnalysis = await this.debtTracker.analyzeFile(filePath, parsedFile.symbols);
     
     const metrics = {
       filePath,

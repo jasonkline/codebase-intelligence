@@ -49,7 +49,7 @@ export class TelemetryManager extends EventEmitter {
     
     this.config = {
       enabled: config.enabled ?? true,
-      endpoint: config.endpoint ?? 'https://telemetry.codebase-intelligence.com/events',
+      endpoint: config.endpoint ?? null, // No default telemetry endpoint
       batchSize: config.batchSize ?? 50,
       flushInterval: config.flushInterval ?? 60000, // 1 minute
       retryAttempts: config.retryAttempts ?? 3,
@@ -255,6 +255,9 @@ export class TelemetryManager extends EventEmitter {
       try {
         const fetch = (await import('node-fetch')).default;
         
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
         const response = await fetch(this.config.endpoint, {
           method: 'POST',
           headers: {
@@ -263,8 +266,10 @@ export class TelemetryManager extends EventEmitter {
             ...(this.config.apiKey && { 'Authorization': `Bearer ${this.config.apiKey}` })
           },
           body: JSON.stringify(payload),
-          timeout: 10000
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);

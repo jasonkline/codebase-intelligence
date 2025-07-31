@@ -126,7 +126,7 @@ Place this file in your project root to configure project-specific settings:
     "includePerformance": true,
     "includeErrors": true,
     "includeUsage": false,
-    "endpoint": "https://telemetry.codebase-intelligence.com/v1/events"
+    "enabled": false
   }
 }
 ```
@@ -229,10 +229,9 @@ export CI_GOVERNANCE_STRICT="false"
 ### Telemetry Configuration
 
 ```bash
-# Telemetry settings
-export CI_ENABLE_TELEMETRY="true"
+# Telemetry settings (disabled by default)
+export CI_ENABLE_TELEMETRY="false"
 export CI_TELEMETRY_ANONYMIZE="true"
-export CI_TELEMETRY_ENDPOINT="https://telemetry.codebase-intelligence.com/v1/events"
 export CI_TELEMETRY_BATCH_SIZE="100"
 export CI_TELEMETRY_FLUSH_INTERVAL="30000"  # 30 seconds
 ```
@@ -568,4 +567,4 @@ codebase-intelligence analyze
 
 ---
 
-*For more configuration examples, see our [GitHub repository](https://github.com/your-org/codebase-intelligence/tree/main/examples/configurations).*
+*For more configuration examples, see our [GitHub repository](https://github.com/jasonkline/codebase-intelligence/tree/main/examples).*

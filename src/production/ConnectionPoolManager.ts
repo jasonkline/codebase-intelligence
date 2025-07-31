@@ -360,7 +360,7 @@ export class ConnectionPoolManager {
       connection.queries++;
       this.metrics.totalQueries++;
       
-      return connection.database.transaction(callback)();
+      return connection.database.transaction(callback)(connection.database);
     } catch (error) {
       if (connection) {
         connection.errors++;
