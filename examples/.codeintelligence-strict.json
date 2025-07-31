@@ -1,0 +1,125 @@
+{
+  "$comment": "Strict Codebase Intelligence Configuration for Enterprise",
+  "version": "1.0.0",
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "lib/**/*.ts",
+    "components/**/*.tsx",
+    "utils/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "*.test.ts",
+    "*.spec.ts",
+    ".next",
+    "**/*.d.ts",
+    "coverage/**",
+    "docs/**"
+  ],
+  "database": {
+    "path": ".codeintel/strict-index.db",
+    "maxSize": "2GB",
+    "backupEnabled": true,
+    "backupInterval": "hourly"
+  },
+  "patterns": {
+    "learningMode": "manual",
+    "minConfidence": 0.95,
+    "categories": [
+      "auth",
+      "rbac",
+      "api",
+      "data_access", 
+      "validation",
+      "error_handling",
+      "ui_components",
+      "styles",
+      "performance",
+      "security"
+    ],
+    "customPatterns": [
+      "enterprise-auth-patterns.json",
+      "security-patterns.json"
+    ]
+  },
+  "security": {
+    "enabled": true,
+    "scanOnSave": true,
+    "blockCritical": true,
+    "warnOnHigh": true,
+    "owasp": true,
+    "customRules": "security-rules.json",
+    "reportingLevel": "all"
+  },
+  "knowledge": {
+    "autoDocument": true,
+    "updateFrequency": "on_change",
+    "includeArchitectureDocs": true,
+    "generateFlowDiagrams": true,
+    "maxDocumentationSize": "50MB"
+  },
+  "governance": {
+    "enabled": true,
+    "strictMode": true,
+    "autoSuggest": true,
+    "enforceStyles": true,
+    "requireApprovedPatterns": [
+      "auth",
+      "rbac",
+      "data_access",
+      "api",
+      "validation",
+      "error_handling"
+    ],
+    "customRulesets": [
+      "enterprise-rules.json",
+      "security-governance.json"
+    ]
+  },
+  "intelligence": {
+    "explainComplexity": true,
+    "suggestRefactoring": true,
+    "trackTechnicalDebt": true,
+    "predictiveAnalysis": true
+  },
+  "server": {
+    "port": 7345,
+    "logLevel": "warn",
+    "enableUI": true,
+    "uiPort": 7346,
+    "maxConcurrentRequests": 20,
+    "requestTimeout": 60000
+  },
+  "performance": {
+    "enableCaching": true,
+    "cacheSize": "512MB",
+    "enableProfiling": true,
+    "maxMemoryUsage": "2GB"
+  },
+  "tools": {
+    "enabled": ["*"],
+    "disabled": [],
+    "rateLimit": {
+      "requestsPerMinute": 100,
+      "burstLimit": 20
+    }
+  },
+  "integrations": {
+    "vscode": {
+      "enabled": true,
+      "port": 7347
+    },
+    "github": {
+      "enabled": true,
+      "webhooks": true
+    },
+    "slack": {
+      "enabled": false
+    }
+  }
+}

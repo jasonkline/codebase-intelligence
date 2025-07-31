@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/specification/main/schema/mcp_config_schema.json",
+  "description": "Development MCP configuration with debugging enabled",
+  "mcpServers": {
+    "codebase-intelligence-dev": {
+      "command": "npx",
+      "args": ["ts-node", "src/index.ts"],
+      "cwd": "/path/to/codebase-intelligence",
+      "env": {
+        "NODE_ENV": "development",
+        "CODEINTEL_LOGLEVEL": "debug",
+        "CODEINTEL_DATABASE_PATH": ".codeintel/dev-index.db",
+        "CODEINTEL_PORT": "7345"
+      }
+    }
+  }
+}

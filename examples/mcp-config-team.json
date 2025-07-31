@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/specification/main/schema/mcp_config_schema.json",
+  "description": "Team-shared MCP configuration with shared database",
+  "mcpServers": {
+    "codebase-intelligence-team": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "cwd": "/shared/codebase-intelligence",
+      "env": {
+        "NODE_ENV": "production",
+        "CODEINTEL_LOGLEVEL": "info",
+        "CODEINTEL_DATABASE_PATH": "/shared/codeintel/team-index.db",
+        "CODEINTEL_PORT": "7345"
+      }
+    }
+  }
+}

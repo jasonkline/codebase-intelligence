@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/specification/main/schema/mcp_config_schema.json",
+  "description": "Production MCP configuration with optimized settings",
+  "mcpServers": {
+    "codebase-intelligence": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "cwd": "/opt/codebase-intelligence",
+      "env": {
+        "NODE_ENV": "production",
+        "CODEINTEL_LOGLEVEL": "warn",
+        "CODEINTEL_DATABASE_PATH": "/var/lib/codeintel/index.db",
+        "CODEINTEL_PORT": "7345"
+      },
+      "timeout": 30000,
+      "retries": 3
+    }
+  }
+}

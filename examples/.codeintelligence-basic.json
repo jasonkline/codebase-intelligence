@@ -1,0 +1,84 @@
+{
+  "$comment": "Basic Codebase Intelligence Configuration",
+  "version": "1.0.0",
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "lib/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "*.test.ts",
+    ".next",
+    "**/*.d.ts"
+  ],
+  "database": {
+    "path": ".codeintel/index.db",
+    "maxSize": "1GB",
+    "backupEnabled": true,
+    "backupInterval": "daily"
+  },
+  "patterns": {
+    "learningMode": "auto",
+    "minConfidence": 0.85,
+    "categories": [
+      "auth",
+      "rbac", 
+      "api",
+      "data_access",
+      "validation",
+      "error_handling",
+      "ui_components",
+      "styles"
+    ]
+  },
+  "security": {
+    "enabled": true,
+    "scanOnSave": true,
+    "blockCritical": true,
+    "warnOnHigh": true,
+    "owasp": true,
+    "reportingLevel": "high"
+  },
+  "knowledge": {
+    "autoDocument": true,
+    "updateFrequency": "on_change",
+    "includeArchitectureDocs": true,
+    "generateFlowDiagrams": true
+  },
+  "governance": {
+    "enabled": true,
+    "strictMode": false,
+    "autoSuggest": true,
+    "enforceStyles": true,
+    "requireApprovedPatterns": [
+      "auth",
+      "rbac",
+      "data_access"
+    ]
+  },
+  "intelligence": {
+    "explainComplexity": true,
+    "suggestRefactoring": true,
+    "trackTechnicalDebt": true
+  },
+  "server": {
+    "port": 7345,
+    "logLevel": "info",
+    "enableUI": false,
+    "uiPort": 7346
+  },
+  "performance": {
+    "enableCaching": true,
+    "cacheSize": "256MB",
+    "enableProfiling": false,
+    "maxMemoryUsage": "1GB"
+  },
+  "tools": {
+    "enabled": ["*"],
+    "disabled": []
+  }
+}

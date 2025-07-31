@@ -1,0 +1,69 @@
+{
+  "mcpServers": {
+    "codebase-intelligence": {
+      "command": "node",
+      "args": [
+        "/path/to/codebase-intelligence/dist/index.js"
+      ],
+      "env": {
+        "CI_PROJECT_PATH": "/path/to/narwol-psa",
+        "CI_LOG_LEVEL": "info",
+        "CI_ENABLE_TELEMETRY": "true",
+        "CI_DATABASE_PATH": ".codeintel/narwol-psa.db"
+      },
+      "description": "Codebase Intelligence for narwol-psa project",
+      "disabled": false
+    }
+  },
+  "globalShortcuts": [
+    {
+      "key": "cmd+shift+i",
+      "command": "codebase-intelligence.analyze_project"
+    },
+    {
+      "key": "cmd+shift+s",
+      "command": "codebase-intelligence.analyze_security"
+    }
+  ],
+  "autoStartServers": ["codebase-intelligence"],
+  "projectConfig": {
+    "narwol-psa": {
+      "patterns": {
+        "authentication": [
+          "requireAuthWithTenant",
+          "getOrgDatabaseWithAuth",
+          "hasPermission"
+        ],
+        "dataAccess": [
+          "getSupabaseRLS",
+          "getOrgDatabaseWithAuth"
+        ],
+        "authorization": [
+          "admin",
+          "member", 
+          "approver"
+        ]
+      },
+      "securityRules": {
+        "criticalPaths": [
+          "src/app/api/**/*.ts",
+          "src/lib/supabase-auth.ts",
+          "src/lib/database.ts"
+        ],
+        "requireAuth": [
+          "src/app/api/**/*.ts"
+        ],
+        "requireRLS": [
+          "src/lib/database.ts"
+        ]
+      },
+      "excludePatterns": [
+        "node_modules/**",
+        ".next/**",
+        "dist/**",
+        "**/*.test.ts",
+        "**/*.spec.ts"
+      ]
+    }
+  }
+}

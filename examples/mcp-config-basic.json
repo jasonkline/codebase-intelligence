@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/specification/main/schema/mcp_config_schema.json",
+  "description": "Basic MCP configuration for Codebase Intelligence",
+  "mcpServers": {
+    "codebase-intelligence": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "cwd": "/path/to/codebase-intelligence",
+      "env": {
+        "CODEINTEL_LOGLEVEL": "info",
+        "CODEINTEL_DATABASE_PATH": ".codeintel/index.db"
+      }
+    }
+  }
+}

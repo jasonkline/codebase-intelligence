@@ -1,0 +1,89 @@
+{
+  "$comment": "Development-optimized Codebase Intelligence Configuration",
+  "version": "1.0.0",
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx", 
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "lib/**/*.ts",
+    "test/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".next",
+    "**/*.d.ts",
+    "coverage/**"
+  ],
+  "database": {
+    "path": ".codeintel/dev-index.db",
+    "maxSize": "500MB",
+    "backupEnabled": false
+  },
+  "patterns": {
+    "learningMode": "auto",
+    "minConfidence": 0.7,
+    "categories": [
+      "auth",
+      "api",
+      "data_access",
+      "ui_components",
+      "styles"
+    ]
+  },
+  "security": {
+    "enabled": true,
+    "scanOnSave": false,
+    "blockCritical": false,
+    "warnOnHigh": true,
+    "owasp": true,
+    "reportingLevel": "medium"
+  },
+  "knowledge": {
+    "autoDocument": false,
+    "updateFrequency": "hourly",
+    "includeArchitectureDocs": false,
+    "generateFlowDiagrams": false
+  },
+  "governance": {
+    "enabled": false,
+    "strictMode": false,
+    "autoSuggest": true,
+    "enforceStyles": false,
+    "requireApprovedPatterns": []
+  },
+  "intelligence": {
+    "explainComplexity": true,
+    "suggestRefactoring": false,
+    "trackTechnicalDebt": false
+  },
+  "server": {
+    "port": 7345,
+    "logLevel": "debug",
+    "enableUI": true,
+    "uiPort": 7346,
+    "maxConcurrentRequests": 5,
+    "requestTimeout": 10000
+  },
+  "performance": {
+    "enableCaching": false,
+    "cacheSize": "64MB",
+    "enableProfiling": true,
+    "maxMemoryUsage": "512MB"
+  },
+  "tools": {
+    "enabled": [
+      "analyze_security",
+      "check_pattern_compliance",
+      "explain_system",
+      "search_code",
+      "find_symbol"
+    ],
+    "disabled": [
+      "create_rule",
+      "get_governance_report",
+      "analyze_impact"
+    ]
+  }
+}
