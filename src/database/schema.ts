@@ -1291,7 +1291,7 @@ export class DatabaseManager {
       finding.finding_id,
       finding.check_type,
       finding.resource_type,
-      finding.resource_name || null,
+      finding.resource_name ?? null,
       finding.file_path,
       finding.line_start,
       finding.line_end,
@@ -1299,14 +1299,14 @@ export class DatabaseManager {
       finding.check_id,
       finding.description,
       finding.remediation,
-      finding.cwe_id || null,
-      finding.compliance_frameworks || null,
+      finding.cwe_id ?? null,
+      finding.compliance_frameworks ?? null,
       finding.detected_at,
-      finding.resolved,
-      finding.bc_check_id || null,
-      finding.guideline || null,
-      finding.frameworks || null,
-      finding.risk_score || null
+      finding.resolved ? 1 : 0,
+      finding.bc_check_id ?? null,
+      finding.guideline ?? null,
+      finding.frameworks ?? null,
+      finding.risk_score ?? null
     );
     
     return result.lastInsertRowid as number;

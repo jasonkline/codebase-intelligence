@@ -363,25 +363,31 @@ For more details: https://www.checkov.io/1.Welcome/Quick%20Start.html`;
 
   private parseCheckovOutput(output: string): CheckovScanResult {
     try {
-      const lines = output.split('\n').filter(line => line.trim());
-      
-      // Find the JSON output line (Checkov sometimes outputs extra info)
-      let jsonLine = '';
-      for (const line of lines) {
-        try {
-          JSON.parse(line);
-          jsonLine = line;
-          break;
-        } catch {
-          continue;
+      // First try to parse the entire output as JSON (multi-line JSON)
+      try {
+        return JSON.parse(output) as CheckovScanResult;
+      } catch {
+        // If that fails, try to find individual JSON lines
+        const lines = output.split('\n').filter(line => line.trim());
+        
+        // Find the JSON output line (Checkov sometimes outputs extra info)
+        let jsonLine = '';
+        for (const line of lines) {
+          try {
+            JSON.parse(line);
+            jsonLine = line;
+            break;
+          } catch {
+            continue;
+          }
         }
-      }
 
-      if (!jsonLine) {
-        throw new Error('No valid JSON output found from Checkov');
-      }
+        if (!jsonLine) {
+          throw new Error('No valid JSON output found from Checkov');
+        }
 
-      return JSON.parse(jsonLine) as CheckovScanResult;
+        return JSON.parse(jsonLine) as CheckovScanResult;
+      }
     } catch (error) {
       logger.error('Failed to parse Checkov output:', error);
       logger.debug('Raw output:', output);
@@ -417,12 +423,12 @@ For more details: https://www.checkov.io/1.Welcome/Quick%20Start.html`;
         severity,
         description: check.description || check.check_name,
         remediation: check.remediation || check.guideline || 'Review and fix the security configuration',
-        cwe_id: this.extractCweId(check),
+        cwe_id: this.extractCweId(check) ?? null,
         compliance_frameworks: JSON.stringify(this.extractComplianceFrameworks(check)),
         detected_at: new Date().toISOString(),
         resolved: false,
-        bc_check_id: check.bc_check_id,
-        guideline: check.guideline,
+        bc_check_id: check.bc_check_id ?? null,
+        guideline: check.guideline ?? null,
         frameworks: JSON.stringify(check.frameworks || []),
         risk_score: this.calculateRiskScore(check)
       };
