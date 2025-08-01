@@ -74,6 +74,12 @@ jest_cache/
 .vscode-counter/
 
 # Development temporary files
+*_PLAN.md
+*_SUMMARY.md
 COMPILATION_FIX_PLAN.md
 compilation-errors.txt
 test-*.js
+test-*.ts
+simple-test.*
+validate-system.js
+test-project/
