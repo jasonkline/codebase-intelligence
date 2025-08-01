@@ -368,7 +368,7 @@ npm run test:coverage
 
 ## License
 
-ISC License - see LICENSE file for details
+Apache 2.0 + Commons Clause - see [LICENSE](https://github.com/jasonkline/codebase-intelligence?tab=License-1-ov-file) file for details
 
 ---
 
