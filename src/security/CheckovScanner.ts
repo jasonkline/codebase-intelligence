@@ -323,7 +323,8 @@ For more details: https://www.checkov.io/1.Welcome/Quick%20Start.html`;
   ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
     return new Promise((resolve, reject) => {
       const child = spawn(this.checkovPath, args, {
-        stdio: ['ignore', 'pipe', 'pipe']
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: process.env
       });
 
       let stdout = '';
