@@ -65,18 +65,31 @@ Codebase Intelligence acts as a "second brain" for Claude Code and developers, o
 - A TypeScript/JavaScript project to analyze
 - Claude Code installed and configured
 
-### Quick Install
+### Quick Install Options
 
+#### Option 1: Source Installation (Recommended)
 ```bash
-# Clone the repository
+# Clone and build from source
 git clone https://github.com/jasonkline/codebase-intelligence.git
 cd codebase-intelligence
-
-# Install dependencies
 npm install
-
-# Build the project
 npm run build
+```
+
+#### Option 2: Installation Script
+```bash
+# Clone and run installation script
+git clone https://github.com/jasonkline/codebase-intelligence.git
+cd codebase-intelligence
+./setup-scripts/install.sh
+```
+
+#### Option 3: Docker Deployment
+```bash
+# Clone and run with Docker
+git clone https://github.com/jasonkline/codebase-intelligence.git
+cd codebase-intelligence
+docker-compose up -d
 ```
 
 ### Configure Claude Code MCP
@@ -206,20 +219,37 @@ npm run clean
                                 └─────────────┘
 ```
 
-## Technology Stack
+## System Requirements
 
-- **Language**: TypeScript
-- **Parser**: TypeScript Compiler API
-- **Database**: SQLite with FTS5 (full-text search)
-- **File Watching**: Chokidar
-- **Protocol**: MCP (Model Context Protocol)
-- **Testing**: Jest
-- **Logging**: Winston
+### Minimum Requirements
+- **Node.js**: 16.x or higher
+- **Memory**: 512MB RAM
+- **Storage**: 100MB available space
+- **OS**: macOS, Linux, Windows (WSL2 recommended)
+
+### Recommended for Production
+- **Node.js**: 18.x LTS or 20.x
+- **Memory**: 2GB+ RAM for large codebases
+- **Storage**: 1GB+ available space
+- **CPU**: Multi-core for parallel processing
 
 ## Configuration
 
-The system can be configured through a `.codeintelligence.json` file in your project root:
+The system can be configured through:
 
+### Environment Variables
+```bash
+# Required
+CI_PROJECT_PATH=/path/to/your/project
+
+# Optional
+LOG_LEVEL=info                    # debug, info, warn, error
+NODE_ENV=production              # development, production
+DB_PATH=.codeintel/index.db      # Custom database path
+MAX_FILE_SIZE=1048576           # Max file size in bytes (1MB)
+```
+
+### Project Configuration File (`.codeintelligence.json`)
 ```json
 {
   "include": ["src/**/*.ts", "src/**/*.tsx"],
@@ -238,14 +268,53 @@ The system can be configured through a `.codeintelligence.json` file in your pro
 }
 ```
 
-## Logging
+## Production Deployment
 
+### Docker Deployment
+```bash
+# Using Docker Compose (recommended)
+docker-compose up -d
+
+# Or build custom image
+docker build -t codebase-intelligence .
+docker run -d \
+  -e CI_PROJECT_PATH=/projects \
+  -v /path/to/your/project:/projects:ro \
+  codebase-intelligence
+```
+
+### Health Monitoring
+```bash
+# Health check endpoint (when running with web UI)
+curl http://localhost:3000/health
+
+# Check MCP connectivity
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node dist/index.js
+```
+
+### Logging
 Logs are written to:
 - `logs/combined.log` - All log levels
 - `logs/error.log` - Error messages only
 - Console (development mode only)
 
-Log levels: `error`, `warn`, `info`, `debug`
+## Technology Stack
+
+- **Language**: TypeScript
+- **Parser**: TypeScript Compiler API
+- **Database**: SQLite with FTS5 (full-text search)
+- **File Watching**: Chokidar
+- **Protocol**: MCP (Model Context Protocol)
+- **Testing**: Jest
+- **Logging**: Winston
+
+## Security Considerations
+
+- **File Access**: Limited to configured project paths only
+- **No Network Access**: Runs locally, no external connections
+- **Data Privacy**: All analysis stays on your machine
+- **Sandboxed Execution**: No arbitrary code execution
+- **Read-Only Analysis**: Never modifies your source code
 
 ## Contributing
 
@@ -267,6 +336,33 @@ npm run test:watch
 # Generate coverage report
 npm run test:coverage
 ```
+
+## Troubleshooting
+
+### Common Issues
+
+**"Failed to reconnect to codebase-intelligence"**
+- Verify paths in MCP configuration are correct and absolute
+- Ensure project was built: `npm run build`
+- Check `CI_PROJECT_PATH` environment variable
+- Restart Claude Code after configuration changes
+
+**"CI_PROJECT_PATH environment variable not set"**
+- Add `CI_PROJECT_PATH` to your MCP server environment configuration
+
+**Performance Issues**
+- Increase memory allocation for large codebases
+- Use `exclude` patterns to skip unnecessary files
+- Enable parallel processing in configuration
+
+## Documentation
+
+- **[Quick Start Guide](docs/quickstart.md)** - Get up and running in 5 minutes
+- **[Compatibility Guide](docs/compatibility.md)** - Supported frameworks and languages
+- **[Installation Guide](docs/installation.md)** - Detailed installation instructions
+- **[Configuration Guide](docs/configuration.md)** - Advanced configuration options
+- **[Security Analysis](docs/security-analysis.md)** - Security scanning capabilities
+- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 
 ## Support
 
