@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-The Codebase Intelligence MCP Server provides 26 powerful tools for comprehensive code analysis, security scanning, pattern recognition, and knowledge extraction. This reference covers all available tools with detailed examples.
+The Codebase Intelligence MCP Server provides 33 powerful tools for comprehensive code analysis, security scanning, pattern recognition, and knowledge extraction. This reference covers all available tools with detailed examples.
 
 ## Tool Categories
 
@@ -13,6 +13,15 @@ The Codebase Intelligence MCP Server provides 26 powerful tools for comprehensiv
 - [`check_auth_pattern`](#check_auth_pattern) - Authentication pattern analysis
 - [`find_vulnerabilities`](#find_vulnerabilities) - Specific vulnerability detection
 - [`explain_security`](#explain_security) - Security model explanation
+
+### 🛡️ OWASP Security Tools
+- [`analyze_cheatsheet_compliance`](#analyze_cheatsheet_compliance) - OWASP Cheat Sheet compliance analysis
+- [`assess_asvs_compliance`](#assess_asvs_compliance) - ASVS compliance assessment
+- [`scan_api_security`](#scan_api_security) - OWASP API Security Top 10 scan
+- [`scan_mobile_security`](#scan_mobile_security) - OWASP Mobile Top 10 scan
+- [`scan_ai_security`](#scan_ai_security) - OWASP AI Security scan
+- [`generate_compliance_report`](#generate_compliance_report) - Comprehensive OWASP compliance report
+- [`get_cheatsheet_guidance`](#get_cheatsheet_guidance) - Context-aware OWASP guidance
 
 ### 🧠 Pattern Recognition Tools
 - [`learn_patterns`](#learn_patterns) - Extract patterns from codebase
@@ -268,6 +277,356 @@ Analyze authentication and authorization patterns.
       "severity": "high",
       "line": 45,
       "remediation": "Add authentication middleware"
+    }
+  ]
+}
+```
+
+### OWASP Security Tools
+
+#### `analyze_cheatsheet_compliance`
+Analyze code compliance against OWASP Cheat Sheet patterns and provide context-aware security guidance.
+
+**Parameters:**
+- `filePath` (required, string): Absolute path to the file to analyze
+- `categories` (optional, array): Specific cheat sheet categories to check (authentication, session_management, etc.)
+- `severity` (optional, string): Minimum severity level to report (critical/high/medium/low)
+
+**Example:**
+```typescript
+// Claude Code usage
+"Check this authentication code against OWASP cheat sheets"
+
+// Direct MCP call
+{
+  "name": "analyze_cheatsheet_compliance",
+  "arguments": {
+    "filePath": "/path/to/auth.ts",
+    "categories": ["authentication", "session_management"],
+    "severity": "medium"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "filePath": "/path/to/auth.ts",
+  "compliance": {
+    "overallScore": 78,
+    "issues": 3,
+    "recommendations": 5
+  },
+  "findings": [
+    {
+      "category": "authentication",
+      "severity": "high",
+      "title": "Weak password policy",
+      "line": 45,
+      "cheatSheet": "Authentication Cheat Sheet",
+      "guidance": "Implement strong password requirements with minimum 12 characters",
+      "remediation": "Update password validation to require complex passwords"
+    }
+  ]
+}
+```
+
+#### `assess_asvs_compliance`
+Perform comprehensive ASVS (Application Security Verification Standard) compliance assessment against levels 1-3.
+
+**Parameters:**
+- `projectPath` (required, string): Absolute path to the project directory
+- `level` (optional, number): ASVS compliance level to assess against (1/2/3, default: 1)
+- `includeManualReview` (optional, boolean): Include controls that require manual review
+
+**Example:**
+```typescript
+// Claude Code usage
+"Assess this project's ASVS Level 2 compliance"
+
+// Direct MCP call
+{
+  "name": "assess_asvs_compliance",
+  "arguments": {
+    "projectPath": "/path/to/project",
+    "level": 2,
+    "includeManualReview": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "projectPath": "/path/to/project",
+  "level": 2,
+  "compliance": {
+    "overallScore": 72,
+    "totalControls": 286,
+    "implementedControls": 206,
+    "partialControls": 45,
+    "missingControls": 35
+  },
+  "categories": {
+    "V1_Architecture": { "score": 85, "implemented": 12, "total": 14 },
+    "V2_Authentication": { "score": 68, "implemented": 25, "total": 37 },
+    "V3_Session": { "score": 90, "implemented": 18, "total": 20 }
+  },
+  "criticalFindings": [
+    "V2.1.1: Missing multi-factor authentication",
+    "V3.2.3: Session tokens not properly invalidated"
+  ]
+}
+```
+
+#### `scan_api_security`
+Comprehensive API security scan based on OWASP API Security Top 10, identifying API-specific vulnerabilities.
+
+**Parameters:**
+- `path` (required, string): Absolute path to API files or directory
+- `includeEndpoints` (optional, boolean): Include detailed endpoint analysis
+- `riskThreshold` (optional, number): Risk score threshold (1-10) for reporting
+
+**Example:**
+```typescript
+// Claude Code usage
+"Scan this API directory for OWASP API Security Top 10 issues"
+
+// Direct MCP call
+{
+  "name": "scan_api_security",
+  "arguments": {
+    "path": "/path/to/api",
+    "includeEndpoints": true,
+    "riskThreshold": 3
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "path": "/path/to/api",
+  "summary": {
+    "totalEndpoints": 45,
+    "vulnerableEndpoints": 12,
+    "riskScore": 7.2,
+    "top10Coverage": {
+      "API1_BrokenObjectLevelAuth": 8,
+      "API2_BrokenUserAuth": 3,
+      "API3_ExcessiveDataExposure": 5
+    }
+  },
+  "findings": [
+    {
+      "endpoint": "GET /api/users/{id}",
+      "vulnerability": "API1_BrokenObjectLevelAuth",
+      "severity": "high",
+      "description": "Missing object-level authorization check",
+      "remediation": "Implement proper authorization validation"
+    }
+  ]
+}
+```
+
+#### `scan_mobile_security`
+Mobile application security scan based on OWASP Mobile Top 10, analyzing mobile-specific vulnerabilities.
+
+**Parameters:**
+- `path` (required, string): Absolute path to mobile app files or directory
+- `platform` (optional, string): Target mobile platform (iOS/Android/Cross-Platform)
+- `includeFrameworkAnalysis` (optional, boolean): Include mobile framework-specific analysis
+
+**Example:**
+```typescript
+// Claude Code usage
+"Scan this React Native app for mobile security issues"
+
+// Direct MCP call
+{
+  "name": "scan_mobile_security",
+  "arguments": {
+    "path": "/path/to/mobile-app",
+    "platform": "Cross-Platform",
+    "includeFrameworkAnalysis": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "path": "/path/to/mobile-app",
+  "platform": "Cross-Platform",
+  "summary": {
+    "riskScore": 6.8,
+    "totalIssues": 15,
+    "top10Coverage": {
+      "M1_ImproperPlatformUsage": 2,
+      "M2_InsecureDataStorage": 4,
+      "M3_InsecureCommunication": 3
+    }
+  },
+  "findings": [
+    {
+      "vulnerability": "M2_InsecureDataStorage",
+      "severity": "high",
+      "file": "src/storage/SecureStorage.js",
+      "description": "Sensitive data stored without encryption",
+      "remediation": "Use platform keychain/keystore for sensitive data"
+    }
+  ]
+}
+```
+
+#### `scan_ai_security`
+AI/ML security scan based on OWASP AI Testing Guide, identifying AI-specific vulnerabilities including prompt injection and model security.
+
+**Parameters:**
+- `path` (required, string): Absolute path to AI/ML code files or directory
+- `includeModelAnalysis` (optional, boolean): Include detailed ML model security analysis
+- `riskLevel` (optional, string): Minimum risk level to report (high/medium/low)
+
+**Example:**
+```typescript
+// Claude Code usage
+"Scan this AI application for security vulnerabilities"
+
+// Direct MCP call
+{
+  "name": "scan_ai_security",
+  "arguments": {
+    "path": "/path/to/ai-app",
+    "includeModelAnalysis": true,
+    "riskLevel": "medium"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "path": "/path/to/ai-app",
+  "summary": {
+    "riskScore": 8.1,
+    "totalVulnerabilities": 9,
+    "categories": {
+      "promptInjection": 3,
+      "modelSecurity": 2,
+      "dataPoisoning": 4
+    }
+  },
+  "findings": [
+    {
+      "vulnerability": "Prompt Injection",
+      "severity": "critical",
+      "file": "src/llm/ChatHandler.ts",
+      "description": "User input directly concatenated to prompt without sanitization",
+      "remediation": "Implement input sanitization and prompt templating"
+    }
+  ]
+}
+```
+
+#### `generate_compliance_report`
+Generate comprehensive OWASP compliance report covering multiple standards with detailed metrics and remediation guidance.
+
+**Parameters:**
+- `projectPath` (required, string): Absolute path to the project directory
+- `standards` (optional, array): OWASP standards to include (top10/api-security/asvs/mobile/ai-guide/cheat-sheets)
+- `includeRemediation` (optional, boolean): Include detailed remediation guidance
+- `outputFormat` (optional, string): Report output format (json/summary)
+
+**Example:**
+```typescript
+// Claude Code usage
+"Generate a comprehensive OWASP compliance report for this project"
+
+// Direct MCP call
+{
+  "name": "generate_compliance_report",
+  "arguments": {
+    "projectPath": "/path/to/project",
+    "standards": ["top10", "api-security", "asvs"],
+    "includeRemediation": true,
+    "outputFormat": "summary"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "projectPath": "/path/to/project",
+  "generatedAt": "2024-03-15T10:30:00.000Z",
+  "overallCompliance": {
+    "score": 74,
+    "grade": "B",
+    "criticalIssues": 5,
+    "highIssues": 12,
+    "mediumIssues": 28
+  },
+  "standardsAssessment": {
+    "owaspTop10": { "score": 78, "issues": 15 },
+    "apiSecurity": { "score": 72, "issues": 8 },
+    "asvs": { "score": 71, "issues": 22 }
+  },
+  "recommendations": [
+    {
+      "priority": "critical",
+      "title": "Implement proper authentication",
+      "description": "Multiple endpoints lack authentication",
+      "effort": "high",
+      "impact": "critical"
+    }
+  ]
+}
+```
+
+#### `get_cheatsheet_guidance`
+Get context-aware security guidance from OWASP Cheat Sheets based on code context and security patterns.
+
+**Parameters:**
+- `query` (required, string): Security topic or vulnerability type to get guidance for
+- `context` (optional, string): Code context (file type, framework, etc.) for targeted guidance
+- `limit` (optional, number): Maximum number of guidance items to return
+
+**Example:**
+```typescript
+// Claude Code usage
+"How should I implement secure authentication in a Node.js API?"
+
+// Direct MCP call
+{
+  "name": "get_cheatsheet_guidance",
+  "arguments": {
+    "query": "authentication",
+    "context": "Node.js Express API",
+    "limit": 5
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "query": "authentication",
+  "context": "Node.js Express API",
+  "guidance": [
+    {
+      "title": "Implement Strong Password Policies",
+      "cheatSheet": "Authentication Cheat Sheet",
+      "category": "password_management",
+      "description": "Enforce minimum 12 characters with complexity requirements",
+      "implementation": "Use libraries like joi or express-validator",
+      "example": "const passwordSchema = joi.string().min(12).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])/)"
     }
   ]
 }
@@ -650,10 +1009,28 @@ Predict and suggest what code should come next.
 "Check the authentication implementation in this codebase"
 ```
 
-#### 2. Code Review Workflow
+#### 2. Security Assessment Workflow
+```typescript
+// Comprehensive OWASP compliance assessment
+"Generate a comprehensive OWASP compliance report for this project"
+
+// API-specific security scan
+"Scan this API directory for OWASP API Security Top 10 issues"
+
+// ASVS compliance check
+"Assess this project's ASVS Level 2 compliance"
+
+// Context-aware security guidance
+"How should I implement secure authentication in a Node.js API?"
+```
+
+#### 3. Code Review Workflow
 ```typescript
 // Check pattern compliance
 "Check if this file follows our coding patterns"
+
+// OWASP cheat sheet compliance
+"Check this authentication code against OWASP cheat sheets"
 
 // Security analysis
 "Analyze this API directory for security vulnerabilities" 
@@ -662,7 +1039,7 @@ Predict and suggest what code should come next.
 "What would be the impact of modifying this authentication function?"
 ```
 
-#### 3. Real-time Development
+#### 4. Real-time Development
 ```typescript
 // Enable file watching
 {
@@ -699,6 +1076,7 @@ All tools follow consistent error handling patterns:
 ## Next Steps
 
 - **[Security Analysis Guide](./security-tools.md)** - Deep dive into security features
+- **[OWASP Integration Guide](./owasp-tools.md)** - OWASP compliance and security standards
 - **[Pattern Recognition Guide](./pattern-tools.md)** - Learn about pattern system
 - **[Knowledge System Guide](./knowledge-tools.md)** - Explore AI-powered insights
 - **[Real-time Features](./intelligence-tools.md)** - Set up live code assistance
