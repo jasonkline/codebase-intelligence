@@ -464,7 +464,7 @@ export class DatabaseManager {
           level INTEGER,
           category TEXT NOT NULL,
           cwe_mapping TEXT,
-          references TEXT,
+          "references" TEXT,
           FOREIGN KEY (standard_id) REFERENCES owasp_standards(id)
       );
 
@@ -489,7 +489,7 @@ export class DatabaseManager {
           code_pattern TEXT NOT NULL,
           severity TEXT NOT NULL,
           remediation TEXT NOT NULL,
-          references TEXT,
+          "references" TEXT,
           examples TEXT,
           tags TEXT,
           context TEXT
@@ -781,7 +781,7 @@ export class DatabaseManager {
   clearFileData(filePath: string): void {
     const transaction = this.db.transaction(() => {
       this.db.prepare('DELETE FROM symbols WHERE file_path = ?').run(filePath);
-      this.db.prepare('DELETE FROM references WHERE file_path = ?').run(filePath);
+      this.db.prepare('DELETE FROM symbol_references WHERE file_path = ?').run(filePath);
       this.db.prepare('DELETE FROM pattern_instances WHERE file_path = ?').run(filePath);
       this.db.prepare('DELETE FROM security_issues WHERE file_path = ?').run(filePath);
     });
@@ -834,7 +834,7 @@ export class DatabaseManager {
   // OWASP Controls operations
   insertOwaspControl(control: OwaspControl): number {
     const stmt = this.db.prepare(`
-      INSERT INTO owasp_controls (standard_id, control_id, title, description, level, category, cwe_mapping, references)
+      INSERT INTO owasp_controls (standard_id, control_id, title, description, level, category, cwe_mapping, "references")
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
@@ -884,7 +884,7 @@ export class DatabaseManager {
   insertCheatSheetPattern(pattern: CheatSheetPattern): number {
     const stmt = this.db.prepare(`
       INSERT INTO cheat_sheet_patterns (sheet_name, pattern_name, category, code_pattern, severity, 
-                                      remediation, references, examples, tags, context)
+                                      remediation, "references", examples, tags, context)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
