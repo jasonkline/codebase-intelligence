@@ -137,6 +137,131 @@ export interface SystemDependency {
   description?: string;
 }
 
+// OWASP Standards and References
+export interface OwaspStandard {
+  id?: number;
+  standard_name: string; // 'Top 10 2021', 'API Security Top 10', 'ASVS', 'Cheat Sheets', etc.
+  version: string;
+  description: string;
+  category: string; // 'web', 'api', 'mobile', 'ai', 'verification'
+  url: string;
+  last_updated: string;
+}
+
+export interface OwaspControl {
+  id?: number;
+  standard_id: number;
+  control_id: string; // 'A01:2021', 'API1:2023', 'V2.1.1', etc.
+  title: string;
+  description: string;
+  level?: number; // For ASVS levels 1-3
+  category: string;
+  cwe_mapping?: string; // JSON array of CWE IDs
+  references?: string; // JSON array of reference URLs
+}
+
+export interface ControlMapping {
+  id?: number;
+  finding_id: number; // References security_issues.id
+  control_id: number; // References owasp_controls.id
+  compliance_status: string; // 'compliant', 'non_compliant', 'not_applicable', 'manual_review'
+  evidence?: string;
+  assessed_at: string;
+}
+
+export interface CheatSheetPattern {
+  id?: number;
+  sheet_name: string;
+  pattern_name: string;
+  category: string;
+  code_pattern: string; // RegExp pattern or string match
+  severity: string;
+  remediation: string;
+  references?: string; // JSON array
+  examples?: string; // JSON object with vulnerable/secure examples
+  tags?: string; // JSON array
+  context?: string; // JSON array of file types/contexts
+}
+
+export interface AsvsAssessment {
+  id?: number;
+  project_path: string;
+  level: number; // 1, 2, or 3
+  score: number; // 0-100 compliance score
+  total_controls: number;
+  passed_controls: number;
+  failed_controls: number;
+  not_applicable_controls: number;
+  manual_review_controls: number;
+  assessed_at: string;
+}
+
+export interface AsvsControlStatus {
+  id?: number;
+  assessment_id: number;
+  control_id: number;
+  status: string; // 'pass', 'fail', 'not_applicable', 'manual_review'
+  confidence: number; // 0.0-1.0
+  evidence?: string; // JSON array of evidence
+  violations?: string; // JSON array of violations
+  remediation?: string;
+}
+
+export interface ApiSecurityFinding {
+  id?: number;
+  api_id: string; // API1-API10
+  endpoint_path?: string;
+  http_method?: string;
+  security_issue_id: number; // References security_issues.id
+  platform: string; // 'REST', 'GraphQL', 'gRPC', etc.
+  risk_score: number; // 1-10
+}
+
+export interface MobileSecurityFinding {
+  id?: number;
+  mobile_id: string; // M1-M10
+  platform: string; // 'iOS', 'Android', 'Cross-Platform', 'Web'
+  framework?: string;
+  security_issue_id: number; // References security_issues.id
+  risk_score: number; // 1-10
+}
+
+export interface AiSecurityFinding {
+  id?: number;
+  ai_category: string; // 'model_security', 'data_poisoning', 'prompt_injection', etc.
+  model_type?: string;
+  ai_library?: string;
+  security_issue_id: number; // References security_issues.id
+  ml_risk: string; // 'high', 'medium', 'low'
+  impact_area?: string; // JSON array
+}
+
+export interface ComplianceReport {
+  id?: number;
+  project_path: string;
+  standard_id: number;
+  compliance_score: number; // 0-100
+  total_controls: number;
+  compliant_controls: number;
+  non_compliant_controls: number;
+  not_applicable_controls: number;
+  generated_at: string;
+  report_data?: string; // JSON with detailed findings
+}
+
+export interface OwaspComplianceReport {
+  id?: number;
+  report_id: string;
+  project_path: string;
+  report_date: string;
+  overall_score: number;
+  compliance_level: string;
+  issue_count: number;
+  critical_issue_count: number;
+  standard_scores?: string; // JSON with individual standard scores
+  report_data: string; // Full JSON report data
+}
+
 export class DatabaseManager {
   private db: Database.Database;
   private dbPath: string;
@@ -317,6 +442,150 @@ export class DatabaseManager {
           strength INTEGER,
           description TEXT
       );
+
+      -- OWASP Standards
+      CREATE TABLE IF NOT EXISTS owasp_standards (
+          id INTEGER PRIMARY KEY,
+          standard_name TEXT NOT NULL,
+          version TEXT NOT NULL,
+          description TEXT NOT NULL,
+          category TEXT NOT NULL,
+          url TEXT NOT NULL,
+          last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- OWASP Controls
+      CREATE TABLE IF NOT EXISTS owasp_controls (
+          id INTEGER PRIMARY KEY,
+          standard_id INTEGER NOT NULL,
+          control_id TEXT NOT NULL,
+          title TEXT NOT NULL,
+          description TEXT NOT NULL,
+          level INTEGER,
+          category TEXT NOT NULL,
+          cwe_mapping TEXT,
+          references TEXT,
+          FOREIGN KEY (standard_id) REFERENCES owasp_standards(id)
+      );
+
+      -- Control Mappings (link security findings to OWASP controls)
+      CREATE TABLE IF NOT EXISTS control_mappings (
+          id INTEGER PRIMARY KEY,
+          finding_id INTEGER NOT NULL,
+          control_id INTEGER NOT NULL,
+          compliance_status TEXT NOT NULL,
+          evidence TEXT,
+          assessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (finding_id) REFERENCES security_issues(id),
+          FOREIGN KEY (control_id) REFERENCES owasp_controls(id)
+      );
+
+      -- OWASP Cheat Sheet Patterns
+      CREATE TABLE IF NOT EXISTS cheat_sheet_patterns (
+          id INTEGER PRIMARY KEY,
+          sheet_name TEXT NOT NULL,
+          pattern_name TEXT NOT NULL,
+          category TEXT NOT NULL,
+          code_pattern TEXT NOT NULL,
+          severity TEXT NOT NULL,
+          remediation TEXT NOT NULL,
+          references TEXT,
+          examples TEXT,
+          tags TEXT,
+          context TEXT
+      );
+
+      -- ASVS Assessments
+      CREATE TABLE IF NOT EXISTS asvs_assessments (
+          id INTEGER PRIMARY KEY,
+          project_path TEXT NOT NULL,
+          level INTEGER NOT NULL,
+          score INTEGER NOT NULL,
+          total_controls INTEGER NOT NULL,
+          passed_controls INTEGER NOT NULL,
+          failed_controls INTEGER NOT NULL,
+          not_applicable_controls INTEGER NOT NULL,
+          manual_review_controls INTEGER NOT NULL,
+          assessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- ASVS Control Status
+      CREATE TABLE IF NOT EXISTS asvs_control_status (
+          id INTEGER PRIMARY KEY,
+          assessment_id INTEGER NOT NULL,
+          control_id INTEGER NOT NULL,
+          status TEXT NOT NULL,
+          confidence REAL NOT NULL,
+          evidence TEXT,
+          violations TEXT,
+          remediation TEXT,
+          FOREIGN KEY (assessment_id) REFERENCES asvs_assessments(id),
+          FOREIGN KEY (control_id) REFERENCES owasp_controls(id)
+      );
+
+      -- API Security Findings (OWASP API Security Top 10)
+      CREATE TABLE IF NOT EXISTS api_security_findings (
+          id INTEGER PRIMARY KEY,
+          api_id TEXT NOT NULL,
+          endpoint_path TEXT,
+          http_method TEXT,
+          security_issue_id INTEGER NOT NULL,
+          platform TEXT NOT NULL,
+          risk_score INTEGER NOT NULL,
+          FOREIGN KEY (security_issue_id) REFERENCES security_issues(id)
+      );
+
+      -- Mobile Security Findings (OWASP Mobile Top 10)
+      CREATE TABLE IF NOT EXISTS mobile_security_findings (
+          id INTEGER PRIMARY KEY,
+          mobile_id TEXT NOT NULL,
+          platform TEXT NOT NULL,
+          framework TEXT,
+          security_issue_id INTEGER NOT NULL,
+          risk_score INTEGER NOT NULL,
+          FOREIGN KEY (security_issue_id) REFERENCES security_issues(id)
+      );
+
+      -- AI Security Findings (OWASP AI Security Guide)
+      CREATE TABLE IF NOT EXISTS ai_security_findings (
+          id INTEGER PRIMARY KEY,
+          ai_category TEXT NOT NULL,
+          model_type TEXT,
+          ai_library TEXT,
+          security_issue_id INTEGER NOT NULL,
+          ml_risk TEXT NOT NULL,
+          impact_area TEXT,
+          FOREIGN KEY (security_issue_id) REFERENCES security_issues(id)
+      );
+
+      -- Compliance Reports
+      CREATE TABLE IF NOT EXISTS compliance_reports (
+          id INTEGER PRIMARY KEY,
+          project_path TEXT NOT NULL,
+          standard_id INTEGER NOT NULL,
+          compliance_score INTEGER NOT NULL,
+          total_controls INTEGER NOT NULL,
+          compliant_controls INTEGER NOT NULL,
+          non_compliant_controls INTEGER NOT NULL,
+          not_applicable_controls INTEGER NOT NULL,
+          generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          report_data TEXT,
+          FOREIGN KEY (standard_id) REFERENCES owasp_standards(id)
+      );
+
+      -- OWASP Compliance Reports (Enhanced)
+      CREATE TABLE IF NOT EXISTS owasp_compliance_reports (
+          id INTEGER PRIMARY KEY,
+          report_id TEXT NOT NULL UNIQUE,
+          project_path TEXT NOT NULL,
+          report_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          overall_score INTEGER NOT NULL,
+          compliance_level TEXT NOT NULL,
+          issue_count INTEGER NOT NULL,
+          critical_issue_count INTEGER NOT NULL,
+          standard_scores TEXT, -- JSON with individual standard scores
+          report_data TEXT NOT NULL -- Full JSON report data
+      );
     `);
 
     // Create indexes for better performance
@@ -332,6 +601,23 @@ export class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_pattern_instances_file_path ON pattern_instances(file_path);
       CREATE INDEX IF NOT EXISTS idx_security_issues_severity ON security_issues(severity);
       CREATE INDEX IF NOT EXISTS idx_security_issues_file_path ON security_issues(file_path);
+      CREATE INDEX IF NOT EXISTS idx_owasp_compliance_reports_project_path ON owasp_compliance_reports(project_path);
+      CREATE INDEX IF NOT EXISTS idx_owasp_compliance_reports_date ON owasp_compliance_reports(report_date);
+      
+      -- OWASP table indexes
+      CREATE INDEX IF NOT EXISTS idx_owasp_standards_category ON owasp_standards(category);
+      CREATE INDEX IF NOT EXISTS idx_owasp_controls_standard_id ON owasp_controls(standard_id);
+      CREATE INDEX IF NOT EXISTS idx_owasp_controls_control_id ON owasp_controls(control_id);
+      CREATE INDEX IF NOT EXISTS idx_control_mappings_finding_id ON control_mappings(finding_id);
+      CREATE INDEX IF NOT EXISTS idx_control_mappings_control_id ON control_mappings(control_id);
+      CREATE INDEX IF NOT EXISTS idx_cheat_sheet_patterns_category ON cheat_sheet_patterns(category);
+      CREATE INDEX IF NOT EXISTS idx_asvs_assessments_project_path ON asvs_assessments(project_path);
+      CREATE INDEX IF NOT EXISTS idx_asvs_control_status_assessment_id ON asvs_control_status(assessment_id);
+      CREATE INDEX IF NOT EXISTS idx_api_security_findings_api_id ON api_security_findings(api_id);
+      CREATE INDEX IF NOT EXISTS idx_mobile_security_findings_mobile_id ON mobile_security_findings(mobile_id);
+      CREATE INDEX IF NOT EXISTS idx_ai_security_findings_category ON ai_security_findings(ai_category);
+      CREATE INDEX IF NOT EXISTS idx_compliance_reports_project_path ON compliance_reports(project_path);
+      CREATE INDEX IF NOT EXISTS idx_compliance_reports_standard_id ON compliance_reports(standard_id);
     `);
 
     logger.info('Database schema initialized successfully');
@@ -519,6 +805,348 @@ export class DatabaseManager {
   transaction<T>(fn: () => T): T {
     const transaction = this.db.transaction(fn);
     return transaction();
+  }
+
+  // OWASP Standards operations
+  insertOwaspStandard(standard: OwaspStandard): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO owasp_standards (standard_name, version, description, category, url, last_updated)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      standard.standard_name,
+      standard.version,
+      standard.description,
+      standard.category,
+      standard.url,
+      standard.last_updated
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getOwaspStandards(): OwaspStandard[] {
+    const stmt = this.db.prepare('SELECT * FROM owasp_standards ORDER BY category, standard_name');
+    return stmt.all() as OwaspStandard[];
+  }
+
+  // OWASP Controls operations
+  insertOwaspControl(control: OwaspControl): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO owasp_controls (standard_id, control_id, title, description, level, category, cwe_mapping, references)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      control.standard_id,
+      control.control_id,
+      control.title,
+      control.description,
+      control.level || null,
+      control.category,
+      control.cwe_mapping || null,
+      control.references || null
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getOwaspControlsByStandard(standardId: number): OwaspControl[] {
+    const stmt = this.db.prepare('SELECT * FROM owasp_controls WHERE standard_id = ? ORDER BY control_id');
+    return stmt.all(standardId) as OwaspControl[];
+  }
+
+  // Control Mapping operations
+  insertControlMapping(mapping: ControlMapping): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO control_mappings (finding_id, control_id, compliance_status, evidence, assessed_at)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      mapping.finding_id,
+      mapping.control_id,
+      mapping.compliance_status,
+      mapping.evidence || null,
+      mapping.assessed_at
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getControlMappingsByFinding(findingId: number): ControlMapping[] {
+    const stmt = this.db.prepare('SELECT * FROM control_mappings WHERE finding_id = ?');
+    return stmt.all(findingId) as ControlMapping[];
+  }
+
+  // Cheat Sheet Pattern operations
+  insertCheatSheetPattern(pattern: CheatSheetPattern): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO cheat_sheet_patterns (sheet_name, pattern_name, category, code_pattern, severity, 
+                                      remediation, references, examples, tags, context)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      pattern.sheet_name,
+      pattern.pattern_name,
+      pattern.category,
+      pattern.code_pattern,
+      pattern.severity,
+      pattern.remediation,
+      pattern.references || null,
+      pattern.examples || null,
+      pattern.tags || null,
+      pattern.context || null
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getCheatSheetPatternsByCategory(category: string): CheatSheetPattern[] {
+    const stmt = this.db.prepare('SELECT * FROM cheat_sheet_patterns WHERE category = ?');
+    return stmt.all(category) as CheatSheetPattern[];
+  }
+
+  // ASVS Assessment operations
+  insertAsvsAssessment(assessment: AsvsAssessment): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO asvs_assessments (project_path, level, score, total_controls, passed_controls, 
+                                  failed_controls, not_applicable_controls, manual_review_controls, assessed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      assessment.project_path,
+      assessment.level,
+      assessment.score,
+      assessment.total_controls,
+      assessment.passed_controls,
+      assessment.failed_controls,
+      assessment.not_applicable_controls,
+      assessment.manual_review_controls,
+      assessment.assessed_at
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getAsvsAssessmentsByProject(projectPath: string): AsvsAssessment[] {
+    const stmt = this.db.prepare('SELECT * FROM asvs_assessments WHERE project_path = ? ORDER BY assessed_at DESC');
+    return stmt.all(projectPath) as AsvsAssessment[];
+  }
+
+  // ASVS Control Status operations
+  insertAsvsControlStatus(status: AsvsControlStatus): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO asvs_control_status (assessment_id, control_id, status, confidence, evidence, violations, remediation)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      status.assessment_id,
+      status.control_id,
+      status.status,
+      status.confidence,
+      status.evidence || null,
+      status.violations || null,
+      status.remediation || null
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getAsvsControlStatusByAssessment(assessmentId: number): AsvsControlStatus[] {
+    const stmt = this.db.prepare('SELECT * FROM asvs_control_status WHERE assessment_id = ?');
+    return stmt.all(assessmentId) as AsvsControlStatus[];
+  }
+
+  // API Security Finding operations
+  insertApiSecurityFinding(finding: ApiSecurityFinding): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO api_security_findings (api_id, endpoint_path, http_method, security_issue_id, platform, risk_score)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      finding.api_id,
+      finding.endpoint_path || null,
+      finding.http_method || null,
+      finding.security_issue_id,
+      finding.platform,
+      finding.risk_score
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getApiSecurityFindingsByProject(projectPath: string): ApiSecurityFinding[] {
+    const stmt = this.db.prepare(`
+      SELECT asf.*, si.file_path 
+      FROM api_security_findings asf
+      JOIN security_issues si ON asf.security_issue_id = si.id
+      WHERE si.file_path LIKE ?
+      ORDER BY asf.risk_score DESC
+    `);
+    return stmt.all(`${projectPath}%`) as ApiSecurityFinding[];
+  }
+
+  // Mobile Security Finding operations
+  insertMobileSecurityFinding(finding: MobileSecurityFinding): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO mobile_security_findings (mobile_id, platform, framework, security_issue_id, risk_score)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      finding.mobile_id,
+      finding.platform,
+      finding.framework || null,
+      finding.security_issue_id,
+      finding.risk_score
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getMobileSecurityFindingsByProject(projectPath: string): MobileSecurityFinding[] {
+    const stmt = this.db.prepare(`
+      SELECT msf.*, si.file_path 
+      FROM mobile_security_findings msf
+      JOIN security_issues si ON msf.security_issue_id = si.id
+      WHERE si.file_path LIKE ?
+      ORDER BY msf.risk_score DESC
+    `);
+    return stmt.all(`${projectPath}%`) as MobileSecurityFinding[];
+  }
+
+  // AI Security Finding operations
+  insertAiSecurityFinding(finding: AiSecurityFinding): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO ai_security_findings (ai_category, model_type, ai_library, security_issue_id, ml_risk, impact_area)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      finding.ai_category,
+      finding.model_type || null,
+      finding.ai_library || null,
+      finding.security_issue_id,
+      finding.ml_risk,
+      finding.impact_area || null
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getAiSecurityFindingsByProject(projectPath: string): AiSecurityFinding[] {
+    const stmt = this.db.prepare(`
+      SELECT aisf.*, si.file_path 
+      FROM ai_security_findings aisf
+      JOIN security_issues si ON aisf.security_issue_id = si.id
+      WHERE si.file_path LIKE ?
+      ORDER BY aisf.ml_risk DESC
+    `);
+    return stmt.all(`${projectPath}%`) as AiSecurityFinding[];
+  }
+
+  // Compliance Report operations
+  insertComplianceReport(report: ComplianceReport): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO compliance_reports (project_path, standard_id, compliance_score, total_controls, 
+                                    compliant_controls, non_compliant_controls, not_applicable_controls, 
+                                    generated_at, report_data)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      report.project_path,
+      report.standard_id,
+      report.compliance_score,
+      report.total_controls,
+      report.compliant_controls,
+      report.non_compliant_controls,
+      report.not_applicable_controls,
+      report.generated_at,
+      report.report_data || null
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getComplianceReportsByProject(projectPath: string): ComplianceReport[] {
+    const stmt = this.db.prepare(`
+      SELECT cr.*, os.standard_name, os.version
+      FROM compliance_reports cr
+      JOIN owasp_standards os ON cr.standard_id = os.id
+      WHERE cr.project_path = ?
+      ORDER BY cr.generated_at DESC
+    `);
+    return stmt.all(projectPath) as (ComplianceReport & { standard_name: string; version: string })[];
+  }
+
+  // Utility methods for OWASP data initialization
+  initializeOwaspData(): void {
+    const transaction = this.db.transaction(() => {
+      // Initialize OWASP standards
+      const standards = [
+        {
+          standard_name: 'OWASP Top 10',
+          version: '2021',
+          description: 'The OWASP Top 10 is a standard awareness document for developers and web application security',
+          category: 'web',
+          url: 'https://owasp.org/Top10/',
+          last_updated: new Date().toISOString()
+        },
+        {
+          standard_name: 'OWASP API Security Top 10',
+          version: '2023',
+          description: 'The OWASP API Security Top 10 focuses on strategies and solutions for API security',
+          category: 'api',
+          url: 'https://owasp.org/API-Security/editions/2023/en/0x00-header/',
+          last_updated: new Date().toISOString()
+        },
+        {
+          standard_name: 'OWASP ASVS',
+          version: '4.0',
+          description: 'Application Security Verification Standard - comprehensive framework for security requirements',
+          category: 'verification',
+          url: 'https://owasp.org/www-project-application-security-verification-standard/',
+          last_updated: new Date().toISOString()
+        },
+        {
+          standard_name: 'OWASP Mobile Top 10',
+          version: '2016',
+          description: 'The OWASP Mobile Top 10 provides guidance for mobile application security',
+          category: 'mobile',  
+          url: 'https://owasp.org/www-project-mobile-top-10/',
+          last_updated: new Date().toISOString()
+        },
+        {
+          standard_name: 'OWASP Cheat Sheets',
+          version: '4.0',
+          description: 'Concise collection of high value information on specific application security topics',
+          category: 'guidance',
+          url: 'https://cheatsheetseries.owasp.org/',
+          last_updated: new Date().toISOString()
+        }
+      ];
+
+      standards.forEach(standard => {
+        try {
+          this.insertOwaspStandard(standard);
+        } catch (error: any) {
+          if (!error.message.includes('UNIQUE constraint failed')) {
+            logger.error('Error inserting OWASP standard:', error);
+          }
+        }
+      });
+
+      logger.info('OWASP standards initialized');
+    });
+
+    transaction();
   }
 }
 

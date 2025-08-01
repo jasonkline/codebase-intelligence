@@ -85,6 +85,15 @@ export class RuleEngine {
 
   private initializeBuiltInRules(): void {
     const builtInRules: Omit<Rule, 'id'>[] = [
+      // OWASP Top 10 Rules
+      ...this.createOwaspTop10Rules(),
+      // OWASP API Security Top 10 Rules
+      ...this.createOwaspApiSecurityRules(),
+      // OWASP Mobile Top 10 Rules
+      ...this.createOwaspMobileSecurityRules(),
+      // OWASP AI Security Rules
+      ...this.createOwaspAiSecurityRules(),
+      // Existing rules
       {
         name: 'require_auth_in_api_routes',
         description: 'All API routes must include authentication checks',
@@ -241,6 +250,464 @@ export class RuleEngine {
     for (const rule of builtInRules) {
       this.addRule(rule);
     }
+  }
+
+  private createOwaspTop10Rules(): Omit<Rule, 'id'>[] {
+    return [
+      // A01:2021 – Broken Access Control
+      {
+        name: 'owasp_a01_broken_access_control',
+        description: 'OWASP A01 - Check for proper access control implementation',
+        category: 'security',
+        ruleType: 'required',
+        scope: {
+          filePatterns: ['**/api/**/*.ts', '**/routes/**/*.ts', '**/controllers/**/*.ts'],
+          fileTypes: ['.ts', '.js']
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkAccessControl
+        },
+        message: 'OWASP A01: Implement proper access control checks',
+        severity: 'error',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 10
+      },
+      // A02:2021 – Cryptographic Failures
+      {
+        name: 'owasp_a02_cryptographic_failures',
+        description: 'OWASP A02 - Check for proper cryptographic implementation',
+        category: 'security',
+        ruleType: 'forbidden',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.js'],
+        },
+        condition: {
+          type: 'code_structure',
+          codePattern: '(md5|sha1)\\s*\\(|password\\s*[=:]\\s*["\'][^"\']*["\']|\\bdes\\b|\\brc4\\b'
+        },
+        message: 'OWASP A02: Use strong cryptographic algorithms (avoid MD5, SHA1, DES, RC4)',
+        severity: 'error',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 9
+      },
+      // A03:2021 – Injection
+      {
+        name: 'owasp_a03_injection',
+        description: 'OWASP A03 - Check for SQL injection vulnerabilities',
+        category: 'security',
+        ruleType: 'forbidden',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.js'],
+        },
+        condition: {
+          type: 'code_structure',
+          codePattern: 'query\\s*\\+\\s*|exec\\s*\\(.*\\+|\\$\\{.*\\}.*sql|raw\\s*\\('
+        },
+        message: 'OWASP A03: Use parameterized queries to prevent injection attacks',
+        severity: 'error',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 10
+      },
+      // A04:2021 – Insecure Design
+      {
+        name: 'owasp_a04_insecure_design',
+        description: 'OWASP A04 - Check for insecure design patterns',
+        category: 'security',
+        ruleType: 'forbidden',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.js'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkInsecureDesign
+        },
+        message: 'OWASP A04: Implement secure design patterns',
+        severity: 'warning',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 8
+      },
+      // A05:2021 – Security Misconfiguration
+      {
+        name: 'owasp_a05_security_misconfiguration',
+        description: 'OWASP A05 - Check for security misconfigurations',
+        category: 'security',
+        ruleType: 'forbidden',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.js', '**/*.json'],
+        },
+        condition: {
+          type: 'code_structure',
+          codePattern: 'debug\\s*[=:]\\s*true|cors\\s*\\(\\s*\\)|x-powered-by|server.*express'
+        },
+        message: 'OWASP A05: Fix security misconfigurations (disable debug, configure CORS properly)',
+        severity: 'warning',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 7
+      },
+      // A06:2021 – Vulnerable and Outdated Components
+      {
+        name: 'owasp_a06_vulnerable_components',
+        description: 'OWASP A06 - Check for vulnerable dependencies',
+        category: 'security',
+        ruleType: 'forbidden',
+        scope: {
+          filePatterns: ['**/package.json', '**/requirements.txt', '**/Gemfile'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkVulnerableComponents
+        },
+        message: 'OWASP A06: Update vulnerable dependencies',
+        severity: 'warning',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 8
+      },
+      // A07:2021 – Identification and Authentication Failures
+      {
+        name: 'owasp_a07_auth_failures',
+        description: 'OWASP A07 - Check for authentication implementation issues',
+        category: 'security',
+        ruleType: 'required',
+        scope: {
+          filePatterns: ['**/auth/**/*.ts', '**/login/**/*.ts', '**/authentication/**/*.ts'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkAuthenticationFailures
+        },
+        message: 'OWASP A07: Implement proper authentication mechanisms',
+        severity: 'error',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 9
+      },
+      // A08:2021 – Software and Data Integrity Failures
+      {
+        name: 'owasp_a08_integrity_failures',
+        description: 'OWASP A08 - Check for integrity verification',
+        category: 'security',
+        ruleType: 'required',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.js'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkIntegrityFailures
+        },
+        message: 'OWASP A08: Implement integrity verification for critical operations',
+        severity: 'warning',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 7
+      },
+      // A09:2021 – Security Logging and Monitoring Failures
+      {
+        name: 'owasp_a09_logging_failures',
+        description: 'OWASP A09 - Check for proper logging and monitoring',
+        category: 'security',
+        ruleType: 'required',
+        scope: {
+          filePatterns: ['**/api/**/*.ts', '**/auth/**/*.ts'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkLoggingFailures
+        },
+        message: 'OWASP A09: Implement proper security logging and monitoring',
+        severity: 'warning',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 6
+      },
+      // A10:2021 – Server-Side Request Forgery (SSRF)
+      {
+        name: 'owasp_a10_ssrf',
+        description: 'OWASP A10 - Check for SSRF vulnerabilities',
+        category: 'security',
+        ruleType: 'forbidden',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.js'],
+        },
+        condition: {
+          type: 'code_structure',
+          codePattern: 'fetch\\s*\\(\\s*req\\.|axios\\s*\\(\\s*req\\.|request\\s*\\(\\s*req\\.'
+        },
+        message: 'OWASP A10: Validate and sanitize URLs to prevent SSRF attacks',
+        severity: 'error',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 9
+      }
+    ];
+  }
+
+  private createOwaspApiSecurityRules(): Omit<Rule, 'id'>[] {
+    return [
+      // API1:2023 – Broken Object Level Authorization
+      {
+        name: 'owasp_api01_broken_object_auth',
+        description: 'OWASP API01 - Check for broken object level authorization',
+        category: 'security',
+        ruleType: 'required',
+        scope: {
+          filePatterns: ['**/api/**/*.ts', '**/routes/**/*.ts'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkObjectLevelAuth
+        },
+        message: 'OWASP API01: Implement object-level authorization checks',
+        severity: 'error',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 10
+      },
+      // API2:2023 – Broken Authentication
+      {
+        name: 'owasp_api02_broken_auth',
+        description: 'OWASP API02 - Check for broken API authentication',
+        category: 'security',
+        ruleType: 'required',
+        scope: {
+          filePatterns: ['**/api/**/*.ts'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkApiAuthentication
+        },
+        message: 'OWASP API02: Implement proper API authentication',
+        severity: 'error',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 10
+      },
+      // API3:2023 – Broken Object Property Level Authorization
+      {
+        name: 'owasp_api03_property_auth',
+        description: 'OWASP API03 - Check for property level authorization',
+        category: 'security',
+        ruleType: 'required',
+        scope: {
+          filePatterns: ['**/api/**/*.ts'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkPropertyLevelAuth
+        },
+        message: 'OWASP API03: Implement property-level authorization',
+        severity: 'warning',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 8
+      },
+      // API4:2023 – Unrestricted Resource Consumption
+      {
+        name: 'owasp_api04_resource_consumption',
+        description: 'OWASP API04 - Check for rate limiting and resource controls',
+        category: 'security',
+        ruleType: 'required',
+        scope: {
+          filePatterns: ['**/api/**/*.ts'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkResourceConsumption
+        },
+        message: 'OWASP API04: Implement rate limiting and resource consumption controls',
+        severity: 'warning',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 7
+      },
+      // API5:2023 – Broken Function Level Authorization
+      {
+        name: 'owasp_api05_function_auth',
+        description: 'OWASP API05 - Check for function level authorization',
+        category: 'security',
+        ruleType: 'required',
+        scope: {
+          filePatterns: ['**/api/**/*.ts'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkFunctionLevelAuth
+        },
+        message: 'OWASP API05: Implement function-level authorization checks',
+        severity: 'error',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 9
+      }
+    ];
+  }
+
+  private createOwaspMobileSecurityRules(): Omit<Rule, 'id'>[] {
+    return [
+      // M1: Improper Platform Usage
+      {
+        name: 'owasp_m01_improper_platform_usage',
+        description: 'OWASP M01 - Check for improper platform API usage',
+        category: 'security',
+        ruleType: 'forbidden',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkImproperPlatformUsage
+        },
+        message: 'OWASP M01: Use platform APIs securely',
+        severity: 'warning',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 7
+      },
+      // M2: Insecure Data Storage
+      {
+        name: 'owasp_m02_insecure_data_storage',
+        description: 'OWASP M02 - Check for insecure data storage',
+        category: 'security',
+        ruleType: 'forbidden',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+        },
+        condition: {
+          type: 'code_structure',
+          codePattern: 'localStorage\\.|sessionStorage\\.|AsyncStorage\\.|setItem\\('
+        },
+        message: 'OWASP M02: Avoid storing sensitive data in local storage',
+        severity: 'warning',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 8
+      },
+      // M3: Insecure Communication
+      {
+        name: 'owasp_m03_insecure_communication',
+        description: 'OWASP M03 - Check for insecure communication',
+        category: 'security',
+        ruleType: 'forbidden',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.js'],
+        },
+        condition: {
+          type: 'code_structure',
+          codePattern: 'http://|allowsArbitraryLoads.*true|NSAllowsArbitraryLoads'
+        },
+        message: 'OWASP M03: Use HTTPS and secure communication protocols',
+        severity: 'error',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 9
+      },
+      // M4: Insecure Authentication
+      {
+        name: 'owasp_m04_insecure_mobile_auth',
+        description: 'OWASP M04 - Check for insecure mobile authentication',
+        category: 'security',
+        ruleType: 'required',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkMobileAuthentication
+        },
+        message: 'OWASP M04: Implement secure mobile authentication',
+        severity: 'error',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 9
+      },
+      // M5: Insufficient Cryptography
+      {
+        name: 'owasp_m05_insufficient_crypto',
+        description: 'OWASP M05 - Check for insufficient cryptography in mobile apps',
+        category: 'security',
+        ruleType: 'forbidden',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+        },
+        condition: {
+          type: 'code_structure',
+          codePattern: 'btoa\\(|atob\\(|base64|rot13|caesar'
+        },
+        message: 'OWASP M05: Use proper cryptographic algorithms, not encoding',
+        severity: 'warning',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 7
+      }
+    ];
+  }
+
+  private createOwaspAiSecurityRules(): Omit<Rule, 'id'>[] {
+    return [
+      // AI Model Security
+      {
+        name: 'owasp_ai_model_security',
+        description: 'OWASP AI - Check for secure AI model handling',
+        category: 'security',
+        ruleType: 'required',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.js', '**/*.py'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkAiModelSecurity
+        },
+        message: 'OWASP AI: Implement secure AI model loading and handling',
+        severity: 'warning',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 7
+      },
+      // Prompt Injection Prevention
+      {
+        name: 'owasp_ai_prompt_injection',
+        description: 'OWASP AI - Check for prompt injection vulnerabilities',
+        category: 'security',
+        ruleType: 'forbidden',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.js'],
+        },
+        condition: {
+          type: 'code_structure',
+          codePattern: 'prompt.*\\+.*req\\.|template.*\\+.*input|\\$\\{.*req\\.'
+        },
+        message: 'OWASP AI: Sanitize user input before using in AI prompts',
+        severity: 'error',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 9
+      },
+      // AI Data Validation
+      {
+        name: 'owasp_ai_data_validation',
+        description: 'OWASP AI - Check for proper AI data validation',
+        category: 'security',
+        ruleType: 'required',
+        scope: {
+          filePatterns: ['**/*.ts', '**/*.js'],
+        },
+        condition: {
+          type: 'custom',
+          customCheck: this.checkAiDataValidation
+        },
+        message: 'OWASP AI: Validate and sanitize AI training and inference data',
+        severity: 'warning',
+        autoFixAvailable: false,
+        enabled: true,
+        priority: 8
+      }
+    ];
   }
 
   private loadRulesFromDatabase(): void {
@@ -590,6 +1057,235 @@ export class RuleEngine {
       }
     }
 
+    return false;
+  };
+
+  // OWASP Top 10 Custom Check Functions
+  private checkAccessControl = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for missing access control in API routes
+    if (node.type === 'FunctionDeclaration') {
+      const func = node as TSESTree.FunctionDeclaration;
+      const httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+      
+      if (httpMethods.includes(func.id?.name || '')) {
+        // Check if function has auth checks
+        return !sourceCode.includes('requireAuth') && 
+               !sourceCode.includes('checkPermission') &&
+               !sourceCode.includes('authorize');
+      }
+    }
+    return false;
+  };
+
+  private checkInsecureDesign = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for common insecure design patterns
+    if (node.type === 'CallExpression') {
+      const call = node as TSESTree.CallExpression;
+      const calleeText = this.getCalleeText(call.callee);
+      
+      // Check for admin functions without proper controls
+      if (calleeText.toLowerCase().includes('admin') || calleeText.toLowerCase().includes('root')) {
+        return !sourceCode.includes('isAdmin') && !sourceCode.includes('hasRole');
+      }
+    }
+    return false;
+  };
+
+  private checkVulnerableComponents = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check package.json for known vulnerable versions (simplified)
+    if (filePath.includes('package.json')) {
+      const vulnerablePatterns = [
+        '"lodash": "4.17.20"',
+        '"express": "4.17.1"',
+        '"moment": "2.29.1"'
+      ];
+      return vulnerablePatterns.some(pattern => sourceCode.includes(pattern));
+    }
+    return false;
+  };
+
+  private checkAuthenticationFailures = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for weak authentication patterns
+    if (node.type === 'CallExpression') {
+      const call = node as TSESTree.CallExpression;
+      const calleeText = this.getCalleeText(call.callee);
+      
+      // Check for weak password validation
+      if (calleeText.includes('password') || calleeText.includes('auth')) {
+        return !sourceCode.includes('bcrypt') && 
+               !sourceCode.includes('hash') &&
+               !sourceCode.includes('validate');
+      }
+    }
+    return false;
+  };
+
+  private checkIntegrityFailures = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for missing integrity checks in critical operations
+    if (node.type === 'CallExpression') {
+      const call = node as TSESTree.CallExpression;
+      const calleeText = this.getCalleeText(call.callee);
+      
+      if (calleeText.includes('update') || calleeText.includes('delete') || calleeText.includes('create')) {
+        return !sourceCode.includes('checksum') && 
+               !sourceCode.includes('validate') &&
+               !sourceCode.includes('verify');
+      }
+    }
+    return false;
+  };
+
+  private checkLoggingFailures = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for missing security logging
+    if (node.type === 'FunctionDeclaration') {
+      const func = node as TSESTree.FunctionDeclaration;
+      const httpMethods = ['POST', 'PUT', 'DELETE'];
+      
+      if (httpMethods.includes(func.id?.name || '')) {
+        return !sourceCode.includes('logger') && 
+               !sourceCode.includes('log') &&
+               !sourceCode.includes('audit');
+      }
+    }
+    return false;
+  };
+
+  // OWASP API Security Custom Check Functions
+  private checkObjectLevelAuth = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for missing object-level authorization
+    if (node.type === 'CallExpression') {
+      const call = node as TSESTree.CallExpression;
+      const calleeText = this.getCalleeText(call.callee);
+      
+      if (calleeText.includes('findById') || calleeText.includes('getById')) {
+        return !sourceCode.includes('checkOwnership') && 
+               !sourceCode.includes('canAccess') &&
+               !sourceCode.includes('hasPermission');
+      }
+    }
+    return false;
+  };
+
+  private checkApiAuthentication = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for missing API authentication
+    if (node.type === 'FunctionDeclaration') {
+      const func = node as TSESTree.FunctionDeclaration;
+      const httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+      
+      if (httpMethods.includes(func.id?.name || '')) {
+        return !sourceCode.includes('Bearer') && 
+               !sourceCode.includes('jwt') &&
+               !sourceCode.includes('token');
+      }
+    }
+    return false;
+  };
+
+  private checkPropertyLevelAuth = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for property level authorization issues
+    if (node.type === 'ObjectExpression') {
+      const obj = node as TSESTree.ObjectExpression;
+      // Check if sensitive properties are exposed without checks
+      return obj.properties.some(prop => {
+        if (prop.type === 'Property' && prop.key.type === 'Identifier') {
+          const propName = prop.key.name.toLowerCase();
+          return (propName.includes('password') || propName.includes('secret') || propName.includes('key')) &&
+                 !sourceCode.includes('sanitize') && !sourceCode.includes('filter');
+        }
+        return false;
+      });
+    }
+    return false;
+  };
+
+  private checkResourceConsumption = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for missing rate limiting
+    if (node.type === 'FunctionDeclaration') {
+      const func = node as TSESTree.FunctionDeclaration;
+      const httpMethods = ['POST', 'PUT', 'DELETE'];
+      
+      if (httpMethods.includes(func.id?.name || '')) {
+        return !sourceCode.includes('rateLimit') && 
+               !sourceCode.includes('throttle') &&
+               !sourceCode.includes('limit');
+      }
+    }
+    return false;
+  };
+
+  private checkFunctionLevelAuth = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for missing function-level authorization
+    if (node.type === 'FunctionDeclaration') {
+      const func = node as TSESTree.FunctionDeclaration;
+      const functionName = func.id?.name?.toLowerCase() || '';
+      
+      if (functionName.includes('admin') || functionName.includes('delete') || functionName.includes('create')) {
+        return !sourceCode.includes('hasRole') && 
+               !sourceCode.includes('checkPermission') &&
+               !sourceCode.includes('authorize');
+      }
+    }
+    return false;
+  };
+
+  // OWASP Mobile Security Custom Check Functions
+  private checkImproperPlatformUsage = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for improper platform API usage
+    if (node.type === 'CallExpression') {
+      const call = node as TSESTree.CallExpression;
+      const calleeText = this.getCalleeText(call.callee);
+      
+      // Check for insecure platform API usage
+      const insecureApis = ['eval', 'innerHTML', 'dangerouslySetInnerHTML'];
+      return insecureApis.some(api => calleeText.includes(api));
+    }
+    return false;
+  };
+
+  private checkMobileAuthentication = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for insecure mobile authentication patterns
+    if (node.type === 'CallExpression') {
+      const call = node as TSESTree.CallExpression;
+      const calleeText = this.getCalleeText(call.callee);
+      
+      if (calleeText.includes('authenticate') || calleeText.includes('login')) {
+        return !sourceCode.includes('biometric') && 
+               !sourceCode.includes('TouchID') &&
+               !sourceCode.includes('FaceID') &&
+               !sourceCode.includes('keystore');
+      }
+    }
+    return false;
+  };
+
+  // OWASP AI Security Custom Check Functions
+  private checkAiModelSecurity = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for insecure AI model loading
+    if (node.type === 'CallExpression') {
+      const call = node as TSESTree.CallExpression;
+      const calleeText = this.getCalleeText(call.callee);
+      
+      if (calleeText.includes('load') && (calleeText.includes('model') || calleeText.includes('Model'))) {
+        return !sourceCode.includes('verify') && 
+               !sourceCode.includes('checksum') &&
+               !sourceCode.includes('trusted');
+      }
+    }
+    return false;
+  };
+
+  private checkAiDataValidation = (node: TSESTree.Node, sourceCode: string, filePath: string): boolean => {
+    // Check for missing AI data validation
+    if (node.type === 'CallExpression') {
+      const call = node as TSESTree.CallExpression;
+      const calleeText = this.getCalleeText(call.callee);
+      
+      if (calleeText.includes('predict') || calleeText.includes('inference') || calleeText.includes('classify')) {
+        return !sourceCode.includes('validate') && 
+               !sourceCode.includes('sanitize') &&
+               !sourceCode.includes('normalize');
+      }
+    }
     return false;
   };
 

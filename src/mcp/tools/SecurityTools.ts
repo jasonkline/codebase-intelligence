@@ -2,6 +2,11 @@ import { SecurityScanner, SecurityScanOptions } from '../../security/SecuritySca
 import { AuthPatternAnalyzer, AuthFlow } from '../../security/AuthPatternAnalyzer';
 import { RLSAnalyzer, RLSAnalysisResult } from '../../security/RLSAnalyzer';
 import { OWASPScanner, OWASPScanResult } from '../../security/OWASPScanner';
+import { OwaspCheatSheets } from '../../security/OwaspCheatSheets';
+import { ASVSVerifier } from '../../security/ASVSVerifier';
+import { ApiSecurityScanner } from '../../security/ApiSecurityScanner';
+import { AISecurityScanner } from '../../security/AISecurityScanner';
+import { MobileSecurityScanner } from '../../security/MobileSecurityScanner';
 import { SecurityFinding, VulnerabilitySeverity, VulnerabilityCategory, vulnerabilityDatabase } from '../../security/VulnerabilityDatabase';
 import { ResponseFormatter } from '../ResponseFormatter';
 import { PerformanceMonitor } from '../../monitoring/PerformanceMonitor';
@@ -28,6 +33,11 @@ export class SecurityTools {
   private authPatternAnalyzer: AuthPatternAnalyzer;
   private rlsAnalyzer: RLSAnalyzer;
   private owaspScanner: OWASPScanner;
+  private owaspCheatSheets: OwaspCheatSheets;
+  private asvsVerifier: ASVSVerifier;
+  private apiSecurityScanner: ApiSecurityScanner;
+  private aiSecurityScanner: AISecurityScanner;
+  private mobileSecurityScanner: MobileSecurityScanner;
   private responseFormatter: ResponseFormatter;
   private performanceMonitor: PerformanceMonitor;
 
@@ -43,6 +53,11 @@ export class SecurityTools {
     this.authPatternAnalyzer = authPatternAnalyzer;
     this.rlsAnalyzer = rlsAnalyzer;
     this.owaspScanner = owaspScanner;
+    this.owaspCheatSheets = new OwaspCheatSheets();
+    this.asvsVerifier = new ASVSVerifier();
+    this.apiSecurityScanner = new ApiSecurityScanner();
+    this.aiSecurityScanner = new AISecurityScanner();
+    this.mobileSecurityScanner = new MobileSecurityScanner();
     this.responseFormatter = responseFormatter;
     this.performanceMonitor = performanceMonitor;
   }
@@ -51,7 +66,7 @@ export class SecurityTools {
     return [
       {
         name: 'analyze_security',
-        description: 'Perform comprehensive security analysis on a file or directory. Detects vulnerabilities including SQL injection, XSS, hardcoded secrets, missing auth checks, and OWASP Top 10 issues.',
+        description: 'Perform comprehensive security analysis with OWASP compliance mapping. Detects vulnerabilities including SQL injection, XSS, hardcoded secrets, missing auth checks, and maps findings to OWASP Top 10, ASVS controls, API Security Top 10, and Mobile Top 10.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -130,11 +145,38 @@ export class SecurityTools {
           required: ['path'],
         },
       },
+      {
+        name: 'analyze_owasp_compliance',
+        description: 'Perform OWASP-specific compliance analysis including cheat sheet validation, ASVS assessment, API security scanning, AI security analysis, and mobile security scanning.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description: 'Absolute path to file or directory to analyze',
+            },
+            standards: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['cheatsheets', 'asvs', 'api_security', 'ai_security', 'mobile_security']
+              },
+              description: 'OWASP standards to apply (default: all)',
+            },
+            asvsLevel: {
+              type: 'number',
+              enum: [1, 2, 3],
+              description: 'ASVS verification level (1-3, default: 2)',
+            },
+          },
+          required: ['path'],
+        },
+      },
     ];
   }
 
   hasTools(toolNames: string[]): boolean {
-    const securityToolNames = ['analyze_security', 'check_auth_pattern', 'find_vulnerabilities'];
+    const securityToolNames = ['analyze_security', 'check_auth_pattern', 'find_vulnerabilities', 'analyze_owasp_compliance'];
     return toolNames.some(name => securityToolNames.includes(name));
   }
 
@@ -149,6 +191,8 @@ export class SecurityTools {
           return await this.handleCheckAuthPattern(args as AuthPatternAnalysisArgs);
         case 'find_vulnerabilities':
           return await this.handleFindVulnerabilities(args as VulnerabilitySearchArgs);
+        case 'analyze_owasp_compliance':
+          return await this.handleAnalyzeOwaspCompliance(args);
         default:
           throw new Error(`Unknown security tool: ${name}`);
       }
@@ -172,15 +216,23 @@ export class SecurityTools {
 
     logger.info(`Starting security analysis of: ${path}`);
 
-    // Run comprehensive security analysis with concurrent scanning
+    // Run comprehensive security analysis with concurrent scanning including OWASP standards
     const [
       securityFindings,
       rlsAnalysis,
-      owaspResults
+      owaspResults,
+      cheatSheetValidation,
+      apiSecurityResults,
+      aiSecurityResults,
+      mobileSecurityResults
     ] = await Promise.all([
       this.securityScanner.scanFile(path, options),
       this.rlsAnalyzer.analyzeFile(path),
-      this.owaspScanner.scanFile(path)
+      this.owaspScanner.scanFile(path),
+      this.owaspCheatSheets.validateCode(path),
+      this.apiSecurityScanner.scanDirectory(path),
+      this.aiSecurityScanner.scanDirectory(path),
+      this.mobileSecurityScanner.scanDirectory(path)
     ]);
 
     // Generate comprehensive report
@@ -196,22 +248,61 @@ export class SecurityTools {
         bySeverity: report.summary.bySeverity,
         byCategory: report.summary.byCategory,
         rlsIssues: rlsAnalysis.findings.length,
-        owaspIssues: owaspResults.summary.total
+        owaspIssues: owaspResults.summary.total,
+        apiSecurityIssues: apiSecurityResults.summary.total,
+        aiSecurityIssues: aiSecurityResults.summary.total,
+        mobileSecurityIssues: mobileSecurityResults.summary.total
+      },
+      owaspCompliance: {
+        cheatSheets: {
+          compliantPatterns: cheatSheetValidation.compliantPatterns.length,
+          violations: cheatSheetValidation.violations.length,
+          score: cheatSheetValidation.complianceScore
+        },
+        apiSecurity: {
+          totalIssues: apiSecurityResults.summary.total,
+          criticalIssues: apiSecurityResults.summary.critical,
+          categories: Array.from(apiSecurityResults.summary.categories.entries()).map(([cat, count]) => ({ category: cat, count }))
+        },
+        aiSecurity: {
+          hasAIComponents: aiSecurityResults.analysis.hasMLModels,
+          aiLibraries: aiSecurityResults.analysis.aiLibraries,
+          totalIssues: aiSecurityResults.summary.total,
+          recommendations: aiSecurityResults.recommendations.slice(0, 3)
+        },
+        mobileSecurity: {
+          hasMobileComponents: mobileSecurityResults.analysis.hasMobileFrameworks,
+          platforms: mobileSecurityResults.analysis.detectedPlatforms,
+          totalIssues: mobileSecurityResults.summary.total
+        }
       },
       findings: {
         security: securityFindings.slice(0, 20), // Limit for readability
         rls: rlsAnalysis.findings.slice(0, 10),
-        owasp: owaspResults.vulnerabilities.slice(0, 10)
+        owasp: owaspResults.vulnerabilities.slice(0, 10),
+        apiSecurity: apiSecurityResults.vulnerabilities.slice(0, 10),
+        aiSecurity: aiSecurityResults.vulnerabilities.slice(0, 10),
+        mobileSecurity: mobileSecurityResults.vulnerabilities.slice(0, 10)
       },
-      criticalFindings: report.criticalFindings,
+      criticalFindings: [
+        ...report.criticalFindings,
+        ...apiSecurityResults.vulnerabilities.filter(v => v.severity === 'critical'),
+        ...aiSecurityResults.vulnerabilities.filter(v => v.severity === 'critical'),
+        ...mobileSecurityResults.vulnerabilities.filter(v => v.severity === 'critical')
+      ],
       recommendations: [
         ...report.recommendations,
-        ...rlsAnalysis.recommendations.slice(0, 3)
+        ...rlsAnalysis.recommendations.slice(0, 3),
+        ...cheatSheetValidation.recommendations.slice(0, 3),
+        ...apiSecurityResults.recommendations.slice(0, 2),
+        ...aiSecurityResults.recommendations.slice(0, 2),
+        ...mobileSecurityResults.recommendations.slice(0, 2)
       ],
       metadata: {
         scanDuration: Date.now() - Date.now(), // Will be filled by performance monitor
-        toolsUsed: ['SecurityScanner', 'RLSAnalyzer', 'OWASPScanner'],
-        confidence: 'high'
+        toolsUsed: ['SecurityScanner', 'RLSAnalyzer', 'OWASPScanner', 'OwaspCheatSheets', 'ApiSecurityScanner', 'AISecurityScanner', 'MobileSecurityScanner'],
+        confidence: 'high',
+        owaspStandardsApplied: ['Top 10', 'API Security Top 10', 'AI Security Guide', 'Mobile Top 10', 'Cheat Sheets']
       }
     };
 
@@ -360,6 +451,151 @@ export class SecurityTools {
 
     logger.info(`Vulnerability search completed. Found ${findings.length} issues`);
     return { content: [result] };
+  }
+
+  private async handleAnalyzeOwaspCompliance(args: any): Promise<{ content: any[] }> {
+    logger.info('OWASP compliance analysis tool called', { args });
+
+    const { path, standards = ['cheatsheets', 'asvs', 'api_security', 'ai_security', 'mobile_security'], asvsLevel = 2 } = args;
+
+    if (!path) {
+      throw new Error('path is required');
+    }
+
+    logger.info(`Starting OWASP compliance analysis of: ${path}`);
+
+    const results: any = {
+      success: true,
+      path,
+      timestamp: new Date().toISOString(),
+      standardsAnalyzed: standards,
+      compliance: {}
+    };
+
+    // Run selected OWASP standard analyses
+    const analysisPromises: Promise<any>[] = [];
+
+    if (standards.includes('cheatsheets')) {
+      analysisPromises.push(
+        this.owaspCheatSheets.validateCode(path).then(result => ({ type: 'cheatsheets', result }))
+      );
+    }
+
+    if (standards.includes('asvs')) {
+      analysisPromises.push(
+        this.asvsVerifier.assessProject(path, asvsLevel).then(result => ({ type: 'asvs', result }))
+      );
+    }
+
+    if (standards.includes('api_security')) {
+      analysisPromises.push(
+        this.apiSecurityScanner.scanDirectory(path).then(result => ({ type: 'api_security', result }))
+      );
+    }
+
+    if (standards.includes('ai_security')) {
+      analysisPromises.push(
+        this.aiSecurityScanner.scanDirectory(path).then(result => ({ type: 'ai_security', result }))
+      );
+    }
+
+    if (standards.includes('mobile_security')) {
+      analysisPromises.push(
+        this.mobileSecurityScanner.scanDirectory(path).then(result => ({ type: 'mobile_security', result }))
+      );
+    }
+
+    const analysisResults = await Promise.all(analysisPromises);
+
+    // Process results
+    let totalIssues = 0;
+    let criticalIssues = 0;
+    const recommendations: string[] = [];
+
+    analysisResults.forEach(({ type, result }) => {
+      switch (type) {
+        case 'cheatsheets':
+          results.compliance.cheatsheets = {
+            complianceScore: result.complianceScore,
+            compliantPatterns: result.compliantPatterns.length,
+            violations: result.violations.length,
+            topViolations: result.violations.slice(0, 5).map((v: any) => ({
+              pattern: v.pattern,
+              severity: v.severity,
+              file: v.file,
+              line: v.line
+            }))
+          };
+          totalIssues += result.violations.length;
+          recommendations.push(...result.recommendations.slice(0, 2));
+          break;
+
+        case 'asvs':
+          results.compliance.asvs = {
+            level: asvsLevel,
+            overallScore: result.overallScore,
+            passedControls: result.controlResults.filter((c: any) => c.status === 'pass').length,
+            failedControls: result.controlResults.filter((c: any) => c.status === 'fail').length,
+            totalControls: result.controlResults.length,
+            criticalFailures: result.controlResults.filter((c: any) => c.status === 'fail' && c.severity === 'critical').length
+          };
+          totalIssues += result.controlResults.filter((c: any) => c.status === 'fail').length;
+          criticalIssues += result.controlResults.filter((c: any) => c.status === 'fail' && c.severity === 'critical').length;
+          recommendations.push(...result.recommendations.slice(0, 3));
+          break;
+
+        case 'api_security':
+          results.compliance.apiSecurity = {
+            totalVulnerabilities: result.summary.total,
+            criticalVulnerabilities: result.summary.critical,
+            highVulnerabilities: result.summary.high,
+            categories: Array.from(result.summary.categories.entries()).map(([cat, count]) => ({ category: cat, count })),
+            endpoints: result.analysis.endpoints.length
+          };
+          totalIssues += result.summary.total;
+          criticalIssues += result.summary.critical;
+          recommendations.push(...result.recommendations.slice(0, 2));
+          break;
+
+        case 'ai_security':
+          results.compliance.aiSecurity = {
+            hasAIComponents: result.analysis.hasMLModels,
+            aiLibraries: result.analysis.aiLibraries,
+            totalVulnerabilities: result.summary.total,
+            criticalVulnerabilities: result.summary.critical,
+            mlRisks: result.vulnerabilities.filter((v: any) => v.mlRisk === 'high').length
+          };
+          totalIssues += result.summary.total;
+          criticalIssues += result.summary.critical;
+          recommendations.push(...result.recommendations.slice(0, 2));
+          break;
+
+        case 'mobile_security':
+          results.compliance.mobileSecurity = {
+            hasMobileComponents: result.analysis.hasMobileFrameworks,
+            detectedPlatforms: result.analysis.detectedPlatforms,
+            totalVulnerabilities: result.summary.total,
+            criticalVulnerabilities: result.summary.critical,
+            frameworks: result.analysis.mobileFrameworks
+          };
+          totalIssues += result.summary.total;
+          criticalIssues += result.summary.critical;
+          recommendations.push(...result.recommendations.slice(0, 2));
+          break;
+      }
+    });
+
+    results.summary = {
+      totalIssues,
+      criticalIssues,
+      standardsCompliant: totalIssues === 0,
+      complianceLevel: criticalIssues === 0 ? (totalIssues < 5 ? 'high' : 'medium') : 'low'
+    };
+
+    results.recommendations = recommendations.slice(0, 10); // Limit recommendations
+
+    logger.info(`OWASP compliance analysis completed. Total issues: ${totalIssues}, Critical: ${criticalIssues}`);
+    return { content: [results] };
   }
 
   async cleanup(): Promise<void> {
