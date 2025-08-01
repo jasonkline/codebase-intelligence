@@ -39,6 +39,24 @@ Codebase Intelligence acts as a "second brain" for Claude Code and developers, o
 - Flow diagrams and documentation generation
 - Technical debt tracking
 
+## Compatibility
+
+### ✅ **Supported Languages & Frameworks**
+- **Languages**: TypeScript, JavaScript (ES6+), JSON, Markdown
+- **Frontend**: Next.js, React, Vue.js, Angular, Svelte, Nuxt.js
+- **Backend**: Express.js, NestJS, Fastify, Koa.js, Node.js native
+- **Databases**: PostgreSQL, MySQL, SQLite, MongoDB, Supabase
+- **Auth Systems**: Supabase Auth, Auth0, NextAuth.js, JWT, custom
+- **Project Types**: Monorepos, microservices, serverless, JAMstack
+
+### 🎯 **Universal Features**
+- **Framework Detection**: Automatically detects your stack
+- **Pattern Learning**: Adapts to any coding conventions
+- **Security Scanning**: OWASP compliance for any JavaScript project
+- **Architecture Analysis**: Works with any folder structure
+
+**See [Compatibility Guide](docs/compatibility.md) for complete details.**
+
 ## Installation
 
 ### Prerequisites

@@ -68,3 +68,12 @@ jest_cache/
 
 # ESLint
 .eslintcache
+
+# VSCode Extensions
+.VSCodeCounter/
+.vscode-counter/
+
+# Development temporary files
+COMPILATION_FIX_PLAN.md
+compilation-errors.txt
+test-*.js
