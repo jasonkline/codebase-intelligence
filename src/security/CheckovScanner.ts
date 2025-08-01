@@ -70,9 +70,44 @@ export class CheckovScanner {
   private dbManager: DatabaseManager;
   private checkovPath: string;
 
-  constructor(dbManager: DatabaseManager, checkovPath: string = 'checkov') {
+  constructor(dbManager: DatabaseManager, checkovPath?: string) {
     this.dbManager = dbManager;
-    this.checkovPath = checkovPath;
+    this.checkovPath = checkovPath || this.findCheckovPath();
+  }
+
+  private findCheckovPath(): string {
+    const fs = require('fs');
+    
+    // Try common Checkov installation paths
+    const commonPaths = [
+      'checkov', // System PATH
+      '/usr/local/bin/checkov', // Homebrew
+      '/opt/homebrew/bin/checkov', // Homebrew M1 Mac
+      `${process.env.HOME}/Library/Python/3.9/bin/checkov`, // Python user install
+      `${process.env.HOME}/Library/Python/3.10/bin/checkov`, // Python user install
+      `${process.env.HOME}/Library/Python/3.11/bin/checkov`, // Python user install
+      `${process.env.HOME}/.local/bin/checkov`, // Linux user install
+    ];
+
+    // Check each path and return the first one that exists
+    for (const path of commonPaths) {
+      if (path === 'checkov') {
+        // For system PATH, we'll try it and let the command fail if not found
+        return path;
+      }
+      
+      try {
+        if (fs.existsSync(path)) {
+          logger.info(`Found Checkov at: ${path}`);
+          return path;
+        }
+      } catch (error) {
+        // Continue to next path
+      }
+    }
+
+    // Default to checkov in PATH if nothing found
+    return 'checkov';
   }
 
   public async isAvailable(): Promise<boolean> {
@@ -83,6 +118,29 @@ export class CheckovScanner {
       logger.warn('Checkov not available:', error);
       return false;
     }
+  }
+
+  public static getInstallationInstructions(): string {
+    return `Checkov is not installed or not accessible. Please install it using one of these methods:
+
+1. **Using pip (recommended):**
+   pip install checkov
+
+2. **Using pip3:**
+   pip3 install checkov
+
+3. **Using homebrew (macOS):**
+   brew install checkov
+
+4. **Using docker:**
+   docker pull bridgecrew/checkov
+
+5. **If installed but not in PATH, try:**
+   - Add Python user bin to PATH: export PATH="$PATH:$HOME/Library/Python/3.9/bin"
+   - Or specify custom path in configuration: checkovPath
+
+After installation, verify with: checkov --version
+For more details: https://www.checkov.io/1.Welcome/Quick%20Start.html`;
   }
 
   public async scanFile(filePath: string, options: CheckovScanOptions = {}): Promise<IaCSecurityFinding[]> {

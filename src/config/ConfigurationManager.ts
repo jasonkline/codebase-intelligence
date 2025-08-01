@@ -127,6 +127,7 @@ const DEFAULT_CONFIG: CodeIntelligenceConfig = {
   },
   iac: {
     enabled: true,
+    checkovPath: process.env.CHECKOV_PATH || 'checkov', // Can be overridden
     frameworks: ['terraform', 'cloudformation', 'kubernetes', 'dockerfile'],
     complianceFrameworks: ['cis', 'nist', 'pci'],
     scanTimeout: 120000, // 2 minutes

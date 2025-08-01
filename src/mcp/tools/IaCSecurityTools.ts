@@ -271,7 +271,7 @@ export class IaCSecurityTools {
             text: JSON.stringify({
               success: false,
               error: 'Checkov not available',
-              message: 'Checkov is not installed or not accessible. Please install Checkov: pip install checkov',
+              message: CheckovScanner.getInstallationInstructions(),
               timestamp: new Date().toISOString()
             }, null, 2)
           }]
