@@ -65,9 +65,8 @@ Codebase Intelligence acts as a "second brain" for Claude Code and developers, o
 - A TypeScript/JavaScript project to analyze
 - Claude Code installed and configured
 
-### Quick Install Options
+### Installation
 
-#### Option 1: Source Installation (Recommended)
 ```bash
 # Clone and build from source
 git clone https://github.com/jasonkline/codebase-intelligence.git
@@ -76,17 +75,9 @@ npm install
 npm run build
 ```
 
-#### Option 2: Installation Script
+#### Alternative: Docker Deployment
 ```bash
-# Clone and run installation script
-git clone https://github.com/jasonkline/codebase-intelligence.git
-cd codebase-intelligence
-./setup-scripts/install.sh
-```
-
-#### Option 3: Docker Deployment
-```bash
-# Clone and run with Docker
+# Run with Docker (optional)
 git clone https://github.com/jasonkline/codebase-intelligence.git
 cd codebase-intelligence
 docker-compose up -d
@@ -270,12 +261,21 @@ MAX_FILE_SIZE=1048576           # Max file size in bytes (1MB)
 
 ## Production Deployment
 
-### Docker Deployment
+### Running the Server
 ```bash
-# Using Docker Compose (recommended)
+# After building, run the MCP server
+node dist/index.js
+
+# Or with environment variables
+CI_PROJECT_PATH=/path/to/your/project node dist/index.js
+```
+
+### Docker (Alternative)
+```bash
+# Using Docker Compose
 docker-compose up -d
 
-# Or build custom image
+# Or custom container
 docker build -t codebase-intelligence .
 docker run -d \
   -e CI_PROJECT_PATH=/projects \
@@ -283,12 +283,9 @@ docker run -d \
   codebase-intelligence
 ```
 
-### Health Monitoring
+### Health Check
 ```bash
-# Health check endpoint (when running with web UI)
-curl http://localhost:3000/health
-
-# Check MCP connectivity
+# Test MCP connectivity
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node dist/index.js
 ```
 
