@@ -26,6 +26,40 @@ export interface CheatSheetReference {
   categories: string[];
 }
 
+export interface CheatSheetValidation {
+  matches: Array<{
+    pattern: CheatSheetPattern;
+    matches: RegExpMatchArray[];
+    lines: number[];
+  }>;
+  summary: {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  violations: Array<{
+    pattern: string;
+    severity: string;
+    file: string;
+    line: number;
+    code: string;
+    category: string;
+    title: string;
+    description: string;
+    remediation: string;
+    references: string[];
+  }>;
+  compliantPatterns: Array<{
+    pattern: string;
+    category: string;
+    matches: number;
+  }>;
+  complianceScore: number;
+  recommendations: string[];
+}
+
 export class OwaspCheatSheets {
   private patterns: Map<string, CheatSheetPattern> = new Map();
   private references: Map<string, CheatSheetReference> = new Map();
@@ -398,20 +432,7 @@ export class OwaspCheatSheets {
     );
   }
 
-  public validateCode(code: string, filePath: string): {
-    matches: Array<{
-      pattern: CheatSheetPattern;
-      matches: RegExpMatchArray[];
-      lines: number[];
-    }>;
-    summary: {
-      total: number;
-      critical: number;
-      high: number;
-      medium: number;
-      low: number;
-    };
-  } {
+  public validateCode(code: string, filePath: string): CheatSheetValidation {
     const applicablePatterns = this.getPatternsByContext(filePath);
     const results: Array<{
       pattern: CheatSheetPattern;
@@ -464,7 +485,74 @@ export class OwaspCheatSheets {
       }
     }
 
-    return { matches: results, summary };
+    // Generate violations and compliant patterns
+    const violations = results.flatMap(result => 
+      result.matches.map((match, idx) => ({
+        pattern: result.pattern.pattern,
+        severity: result.pattern.severity,
+        file: filePath,
+        line: result.lines[idx] || 0,
+        code: match[0] || '',
+        category: result.pattern.category,
+        title: result.pattern.pattern,
+        description: result.pattern.description,
+        remediation: result.pattern.remediation,
+        references: result.pattern.references
+      }))
+    );
+
+    const compliantPatterns = applicablePatterns
+      .filter(pattern => !results.some(r => r.pattern.id === pattern.id))
+      .map(pattern => ({
+        pattern: pattern.pattern,
+        category: pattern.category,
+        matches: 0
+      }));
+
+    const complianceScore = applicablePatterns.length > 0 
+      ? Math.round(((applicablePatterns.length - results.length) / applicablePatterns.length) * 100)
+      : 100;
+
+    const recommendations = this.generateRecommendations(violations, complianceScore);
+
+    return {
+      matches: results,
+      summary,
+      violations,
+      compliantPatterns,
+      complianceScore,
+      recommendations
+    };
+  }
+
+  private generateRecommendations(violations: any[], complianceScore: number): string[] {
+    const recommendations: string[] = [];
+    
+    if (violations.length === 0) {
+      recommendations.push('✅ All OWASP Cheat Sheet patterns are being followed correctly');
+      return recommendations;
+    }
+
+    const criticalViolations = violations.filter(v => v.severity === 'critical');
+    const highViolations = violations.filter(v => v.severity === 'high');
+    
+    if (criticalViolations.length > 0) {
+      recommendations.push(`🚨 Fix ${criticalViolations.length} critical security pattern violations immediately`);
+    }
+    
+    if (highViolations.length > 0) {
+      recommendations.push(`⚠️ Address ${highViolations.length} high-severity security pattern violations`);
+    }
+
+    if (complianceScore < 50) {
+      recommendations.push('📚 Review OWASP Cheat Sheets for comprehensive security guidance');
+      recommendations.push('🔍 Conduct security code review with focus on authentication and session management');
+    } else if (complianceScore < 80) {
+      recommendations.push('📖 Implement remaining OWASP security patterns');
+      recommendations.push('🛡️ Strengthen input validation and output encoding');
+    }
+
+    return recommendations.slice(0, 5);
   }
 
   public getRemediationGuidance(patternId: string): {

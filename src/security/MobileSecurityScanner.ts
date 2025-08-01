@@ -37,6 +37,11 @@ export interface MobileApp {
 export interface MobileScanResult {
   vulnerabilities: MobileSecurityVulnerability[];
   appAnalysis: MobileApp;
+  analysis: {
+    hasMobileFrameworks: boolean;
+    detectedPlatforms: string[];
+    mobileFrameworks: string[];
+  };
   summary: {
     total: number;
     critical: number;
@@ -44,8 +49,10 @@ export interface MobileScanResult {
     medium: number;
     low: number;
     byPlatform: Map<string, number>;
+    categories: Map<string, number>;
   };
   complianceMatrix: Map<string, boolean>;
+  recommendations: string[];
 }
 
 export class MobileSecurityScanner {
@@ -245,15 +252,22 @@ export class MobileSecurityScanner {
           cryptoUsage: [],
           authMechanisms: []
         },
+        analysis: {
+          hasMobileFrameworks: false,
+          detectedPlatforms: [],
+          mobileFrameworks: []
+        },
         summary: {
           total: 0,
           critical: 0,
           high: 0,
           medium: 0,
           low: 0,
-          byPlatform: new Map()
+          byPlatform: new Map(),
+          categories: new Map()
         },
-        complianceMatrix: new Map()
+        complianceMatrix: new Map(),
+        recommendations: []
       };
 
       // Analyze mobile app characteristics
@@ -298,15 +312,22 @@ export class MobileSecurityScanner {
         cryptoUsage: [],
         authMechanisms: []
       },
+      analysis: {
+        hasMobileFrameworks: false,
+        detectedPlatforms: [],
+        mobileFrameworks: []
+      },
       summary: {
         total: 0,
         critical: 0,
         high: 0,
         medium: 0,
         low: 0,
-        byPlatform: new Map()
+        byPlatform: new Map(),
+        categories: new Map()
       },
-      complianceMatrix: new Map()
+      complianceMatrix: new Map(),
+      recommendations: []
     };
     
     try {
@@ -1024,15 +1045,22 @@ export class MobileSecurityScanner {
         cryptoUsage: [],
         authMechanisms: []
       },
+      analysis: {
+        hasMobileFrameworks: false,
+        detectedPlatforms: [],
+        mobileFrameworks: []
+      },
       summary: {
         total: 0,
         critical: 0,
         high: 0,
         medium: 0,
         low: 0,
-        byPlatform: new Map()
+        byPlatform: new Map(),
+        categories: new Map()
       },
-      complianceMatrix: new Map()
+      complianceMatrix: new Map(),
+      recommendations: []
     };
   }
 
@@ -1073,7 +1101,50 @@ export class MobileSecurityScanner {
       // Count by platform
       const count = result.summary.byPlatform.get(vuln.platform) || 0;
       result.summary.byPlatform.set(vuln.platform, count + 1);
+
+      // Count by category
+      const categoryCount = result.summary.categories.get(vuln.category) || 0;
+      result.summary.categories.set(vuln.category, categoryCount + 1);
     });
+
+    // Update analysis information
+    result.analysis.hasMobileFrameworks = result.appAnalysis.framework !== 'Unknown';
+    result.analysis.detectedPlatforms = [result.appAnalysis.platform];
+    result.analysis.mobileFrameworks = [result.appAnalysis.framework];
+
+    // Generate recommendations
+    result.recommendations = this.generateMobileRecommendations(result);
+  }
+
+  private generateMobileRecommendations(result: MobileScanResult): string[] {
+    const recommendations: string[] = [];
+
+    if (result.summary.critical > 0) {
+      recommendations.push(`🚨 Fix ${result.summary.critical} critical mobile security issues immediately`);
+    }
+
+    if (result.summary.high > 0) {
+      recommendations.push(`⚠️ Address ${result.summary.high} high-severity mobile security issues`);
+    }
+
+    if (result.analysis.hasMobileFrameworks) {
+      recommendations.push(`📱 Mobile framework detected: ${result.appAnalysis.framework}`);
+      recommendations.push('🔒 Implement mobile-specific security controls');
+    }
+
+    if (result.summary.categories.has('Data Storage')) {
+      recommendations.push('💾 Review data storage security practices');
+    }
+
+    if (result.summary.categories.has('Communication')) {
+      recommendations.push('📡 Ensure secure network communication');
+    }
+
+    if (result.summary.total === 0) {
+      recommendations.push('✅ Mobile security appears well-implemented');
+    }
+
+    return recommendations.slice(0, 5);
   }
 
   private isMobileFile(filePath: string): boolean {

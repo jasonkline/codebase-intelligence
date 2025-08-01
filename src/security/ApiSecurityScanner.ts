@@ -38,6 +38,29 @@ export interface ApiEndpoint {
   responseTypes: string[];
 }
 
+export interface ApiSystemAnalysis {
+  endpoints: ApiEndpoint[];
+  frameworks: string[];
+  authMechanisms: string[];
+  dataValidation: string[];
+  errorHandling: string[];
+}
+
+export interface ApiScanResult {
+  vulnerabilities: ApiSecurityVulnerability[];
+  analysis: ApiSystemAnalysis;
+  summary: {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    categories: Map<string, number>;
+    endpointsScanned: number;
+  };
+  recommendations: string[];
+}
+
 export interface ApiSecurityScanResult {
   vulnerabilities: ApiSecurityVulnerability[];
   endpoints: ApiEndpoint[];
@@ -48,8 +71,10 @@ export interface ApiSecurityScanResult {
     medium: number;
     low: number;
     endpointsScanned: number;
+    categories: Map<string, number>;
   };
   complianceMatrix: Map<string, boolean>;
+  recommendations: string[];
 }
 
 export class ApiSecurityScanner {
@@ -196,8 +221,9 @@ export class ApiSecurityScanner {
       const result: ApiSecurityScanResult = {
         vulnerabilities: [],
         endpoints: [],
-        summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0, endpointsScanned: 0 },
-        complianceMatrix: new Map()
+        summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0, endpointsScanned: 0, categories: new Map() },
+        complianceMatrix: new Map(),
+        recommendations: []
       };
 
       // First, discover API endpoints
@@ -230,8 +256,9 @@ export class ApiSecurityScanner {
     const aggregatedResult: ApiSecurityScanResult = {
       vulnerabilities: [],
       endpoints: [],
-      summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0, endpointsScanned: 0 },
-      complianceMatrix: new Map()
+      summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0, endpointsScanned: 0, categories: new Map() },
+      complianceMatrix: new Map(),
+      recommendations: []
     };
     
     try {
@@ -820,8 +847,9 @@ export class ApiSecurityScanner {
     return {
       vulnerabilities: [],
       endpoints: [],
-      summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0, endpointsScanned: 0 },
-      complianceMatrix: new Map()
+      summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0, endpointsScanned: 0, categories: new Map() },
+      complianceMatrix: new Map(),
+      recommendations: []
     };
   }
 
@@ -854,7 +882,45 @@ export class ApiSecurityScanner {
           result.summary.low++;
           break;
       }
+
+      // Count by category
+      const count = result.summary.categories.get(vuln.category) || 0;
+      result.summary.categories.set(vuln.category, count + 1);
     });
+
+    // Generate recommendations
+    result.recommendations = this.generateApiRecommendations(result);
+  }
+
+  private generateApiRecommendations(result: ApiSecurityScanResult): string[] {
+    const recommendations: string[] = [];
+
+    if (result.summary.critical > 0) {
+      recommendations.push(`🚨 Fix ${result.summary.critical} critical API security issues immediately`);
+    }
+
+    if (result.summary.high > 0) {
+      recommendations.push(`⚠️ Address ${result.summary.high} high-severity API security issues`);
+    }
+
+    if (result.endpoints.length > 0) {
+      recommendations.push(`📊 ${result.endpoints.length} API endpoints analyzed`);
+      recommendations.push('🔒 Implement proper authentication for all API endpoints');
+    }
+
+    if (result.summary.categories.has('Authentication')) {
+      recommendations.push('🔐 Review API authentication mechanisms');
+    }
+
+    if (result.summary.categories.has('Authorization')) {
+      recommendations.push('🛡️ Implement proper authorization controls');
+    }
+
+    if (result.summary.total === 0) {
+      recommendations.push('✅ API security appears well-implemented');
+    }
+
+    return recommendations.slice(0, 5);
   }
 
   private isApiFile(fileName: string, fullPath: string): boolean {

@@ -217,7 +217,7 @@ export class OwaspComplianceReporter {
 
     if (standardsToRun.includes('cheatsheets')) {
       scanPromises.push(
-        this.owaspCheatSheets.validateCode(projectPath).then(result => ({ type: 'cheatsheets', result }))
+        Promise.resolve(this.owaspCheatSheets.validateCode('', projectPath)).then(result => ({ type: 'cheatsheets', result }))
       );
     }
 

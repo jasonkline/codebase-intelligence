@@ -229,7 +229,7 @@ export class SecurityTools {
       this.securityScanner.scanFile(path, options),
       this.rlsAnalyzer.analyzeFile(path),
       this.owaspScanner.scanFile(path),
-      this.owaspCheatSheets.validateCode(path),
+      this.owaspCheatSheets.validateCode('', path),
       this.apiSecurityScanner.scanDirectory(path),
       this.aiSecurityScanner.scanDirectory(path),
       this.mobileSecurityScanner.scanDirectory(path)
@@ -477,7 +477,7 @@ export class SecurityTools {
 
     if (standards.includes('cheatsheets')) {
       analysisPromises.push(
-        this.owaspCheatSheets.validateCode(path).then(result => ({ type: 'cheatsheets', result }))
+        Promise.resolve(this.owaspCheatSheets.validateCode('', path)).then(result => ({ type: 'cheatsheets', result }))
       );
     }
 
