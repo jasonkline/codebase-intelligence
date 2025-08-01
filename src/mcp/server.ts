@@ -11,6 +11,7 @@ import { PatternTools } from './tools/PatternTools';
 import { KnowledgeTools } from './tools/KnowledgeTools';
 import { NavigationTools } from './tools/NavigationTools';
 import { GovernanceTools } from './tools/GovernanceTools';
+import { IaCSecurityTools } from './tools/IaCSecurityTools';
 import { ResponseFormatter } from './ResponseFormatter';
 import { ConfigurationManager } from '../config/ConfigurationManager';
 import { PerformanceMonitor } from '../monitoring/PerformanceMonitor';
@@ -171,6 +172,7 @@ class CodebaseIntelligenceMCPServer {
   private performanceMonitor: PerformanceMonitor;
   private astParser: ASTParser;
   private securityTools: SecurityTools;
+  private iacSecurityTools: IaCSecurityTools;
   private patternTools: PatternTools;
   private knowledgeTools: KnowledgeTools;
   private navigationTools: NavigationTools;
@@ -249,6 +251,13 @@ class CodebaseIntelligenceMCPServer {
       this.patternRegistry,
       this.responseFormatter,
       this.performanceMonitor
+    );
+    
+    this.iacSecurityTools = new IaCSecurityTools(
+      this.database,
+      this.responseFormatter,
+      this.performanceMonitor,
+      this.configManager.getIaCConfig().checkovPath
     );
     
     // Initialize Phase 5 real-time intelligence components
@@ -820,6 +829,177 @@ class CodebaseIntelligenceMCPServer {
               required: ['projectPath'],
             },
           },
+          // IaC Security Tools
+          {
+            name: 'scan_iac_security',
+            description: 'Perform comprehensive Infrastructure as Code (IaC) security scanning using Checkov. Supports Terraform, CloudFormation, Kubernetes, Helm, and other IaC frameworks. Detects security misconfigurations, compliance violations, and provides remediation guidance.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                path: {
+                  type: 'string',
+                  description: 'Absolute path to IaC file or directory to scan',
+                },
+                options: {
+                  type: 'object',
+                  properties: {
+                    frameworks: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      description: 'IaC frameworks to scan (terraform, cloudformation, kubernetes, etc.)',
+                    },
+                    excludeChecks: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      description: 'Checkov check IDs to exclude from scan',
+                    },
+                    includeChecks: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      description: 'Specific Checkov check IDs to include',
+                    },
+                    minSeverity: {
+                      type: 'string',
+                      enum: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'],
+                      description: 'Minimum severity level to report',
+                    },
+                    timeout: {
+                      type: 'number',
+                      description: 'Scan timeout in milliseconds',
+                    },
+                    skipDownload: {
+                      type: 'boolean',
+                      description: 'Skip policy download for faster scans',
+                    },
+                    quiet: {
+                      type: 'boolean',
+                      description: 'Suppress verbose output',
+                    },
+                  },
+                  additionalProperties: false,
+                },
+              },
+              required: ['path'],
+              additionalProperties: false,
+            },
+          },
+          {
+            name: 'check_iac_compliance',
+            description: 'Check IaC compliance against security frameworks (CIS, NIST, PCI DSS, HIPAA, etc.). Provides detailed compliance scoring and gap analysis with actionable remediation steps.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                path: {
+                  type: 'string',
+                  description: 'Absolute path to IaC file or directory to check',
+                },
+                frameworks: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Compliance frameworks to check against (cis, nist, pci, hipaa, gdpr, sox)',
+                },
+                options: {
+                  type: 'object',
+                  properties: {
+                    timeout: {
+                      type: 'number',
+                      description: 'Scan timeout in milliseconds',
+                    },
+                    skipDownload: {
+                      type: 'boolean',
+                      description: 'Skip policy download for faster scans',
+                    },
+                  },
+                  additionalProperties: false,
+                },
+              },
+              required: ['path'],
+              additionalProperties: false,
+            },
+          },
+          {
+            name: 'get_iac_recommendations',
+            description: 'Get intelligent security recommendations for IaC configurations based on findings, industry best practices, and compliance requirements. Provides prioritized action items with implementation guidance.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                path: {
+                  type: 'string',
+                  description: 'Absolute path to project or file to analyze',
+                },
+                checkType: {
+                  type: 'string',
+                  description: 'Filter recommendations by IaC type (terraform, cloudformation, kubernetes)',
+                },
+                severity: {
+                  type: 'string',
+                  enum: ['critical', 'high', 'medium', 'low', 'info'],
+                  description: 'Filter recommendations by severity level',
+                },
+              },
+              required: ['path'],
+              additionalProperties: false,
+            },
+          },
+          {
+            name: 'update_iac_finding_status',
+            description: 'Update the resolution status of an IaC security finding. Use this to mark issues as resolved or reopened for tracking remediation progress.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                findingId: {
+                  type: 'string',
+                  description: 'Unique identifier of the IaC security finding',
+                },
+                resolved: {
+                  type: 'boolean',
+                  description: 'Whether the finding has been resolved',
+                },
+              },
+              required: ['findingId', 'resolved'],
+              additionalProperties: false,
+            },
+          },
+          {
+            name: 'get_iac_security_stats',
+            description: 'Get comprehensive IaC security statistics and trends for a project. Includes finding distribution, compliance scores, risk analysis, and historical trends.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                path: {
+                  type: 'string',
+                  description: 'Absolute path to project directory',
+                },
+              },
+              required: ['path'],
+              additionalProperties: false,
+            },
+          },
+          {
+            name: 'get_iac_owasp_compliance',
+            description: 'Map IaC security findings to OWASP Cloud Security Top 10 controls. Provides detailed compliance analysis, control coverage, and prioritized remediation recommendations based on cloud security best practices.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                path: {
+                  type: 'string',
+                  description: 'Absolute path to project directory',
+                },
+                includeUnmapped: {
+                  type: 'boolean',
+                  description: 'Include findings that could not be mapped to OWASP controls',
+                  default: false,
+                },
+                minConfidence: {
+                  type: 'number',
+                  description: 'Minimum confidence threshold for mappings (0.0-1.0)',
+                  default: 0.5,
+                },
+              },
+              required: ['path'],
+              additionalProperties: false,
+            },
+          },
         ],
       };
     });
@@ -873,6 +1053,19 @@ class CodebaseIntelligenceMCPServer {
             return await this.handleStartWatching(args as unknown as StartWatchingArgs);
           case 'stop_watching':
             return await this.handleStopWatching(args as unknown as StopWatchingArgs);
+          // IaC Security Tools
+          case 'scan_iac_security':
+            return await this.iacSecurityTools.handleToolCall(name, args);
+          case 'check_iac_compliance':
+            return await this.iacSecurityTools.handleToolCall(name, args);
+          case 'get_iac_recommendations':
+            return await this.iacSecurityTools.handleToolCall(name, args);
+          case 'update_iac_finding_status':
+            return await this.iacSecurityTools.handleToolCall(name, args);
+          case 'get_iac_security_stats':
+            return await this.iacSecurityTools.handleToolCall(name, args);
+          case 'get_iac_owasp_compliance':
+            return await this.iacSecurityTools.handleToolCall(name, args);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
@@ -2680,6 +2873,7 @@ export function ComponentName({ id, optional = false }: Props) {
       // Cleanup all tool modules
       await Promise.all([
         this.securityTools.cleanup(),
+        this.iacSecurityTools.cleanup(),
         this.patternTools.cleanup(),
         this.knowledgeTools.cleanup(),
         this.navigationTools.cleanup(),

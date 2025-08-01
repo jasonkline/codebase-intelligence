@@ -27,6 +27,20 @@ export interface CodeIntelligenceConfig {
     customRules?: string;
     reportingLevel: 'all' | 'high' | 'critical';
   };
+  iac: {
+    enabled: boolean;
+    checkovPath?: string; // Custom Checkov installation path
+    frameworks: string[]; // ['terraform', 'cloudformation', 'kubernetes', etc.]
+    complianceFrameworks: string[]; // ['cis', 'nist', 'pci', 'hipaa']
+    excludeChecks?: string[]; // Checkov check IDs to exclude
+    customPoliciesPath?: string;
+    scanTimeout: number; // milliseconds
+    enableDriftDetection: boolean;
+    scanOnSave: boolean;
+    autoRemediation: boolean;
+    reportingLevel: 'all' | 'high' | 'critical';
+    skipDownload: boolean; // Skip policy download for faster scans
+  };
   knowledge: {
     autoDocument: boolean;
     updateFrequency: 'on_change' | 'hourly' | 'daily';
@@ -111,6 +125,17 @@ const DEFAULT_CONFIG: CodeIntelligenceConfig = {
     owasp: true,
     reportingLevel: 'high'
   },
+  iac: {
+    enabled: true,
+    frameworks: ['terraform', 'cloudformation', 'kubernetes', 'dockerfile'],
+    complianceFrameworks: ['cis', 'nist', 'pci'],
+    scanTimeout: 120000, // 2 minutes
+    enableDriftDetection: false,
+    scanOnSave: true,
+    autoRemediation: false,
+    reportingLevel: 'high',
+    skipDownload: false
+  },
   knowledge: {
     autoDocument: true,
     updateFrequency: 'on_change',
@@ -193,6 +218,10 @@ export class ConfigurationManager {
 
   getSecurityConfig() {
     return this.config.security;
+  }
+
+  getIaCConfig() {
+    return this.config.iac;
   }
 
   getDatabaseConfig() {

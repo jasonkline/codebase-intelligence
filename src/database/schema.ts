@@ -262,6 +262,63 @@ export interface OwaspComplianceReport {
   report_data: string; // Full JSON report data
 }
 
+// IaC Security specific interfaces
+export interface IaCSecurityFinding {
+  id?: number;
+  finding_id: string;
+  check_type: string; // 'terraform', 'cloudformation', 'kubernetes', etc.
+  resource_type: string;
+  resource_name?: string;
+  file_path: string;
+  line_start: number;
+  line_end: number;
+  severity: string; // 'critical', 'high', 'medium', 'low', 'info'
+  check_id: string; // Checkov check ID (e.g., CKV_AWS_23)
+  description: string;
+  remediation: string;
+  cwe_id?: string;
+  compliance_frameworks?: string; // JSON array of compliance frameworks
+  detected_at: string;
+  resolved: boolean;
+  bc_check_id?: string; // Bridgecrew check ID
+  guideline?: string;
+  frameworks?: string; // JSON array of frameworks
+  risk_score?: number; // 1-10 risk assessment
+}
+
+export interface IaCComplianceReport {
+  id?: number;
+  report_id: string;
+  project_path: string;
+  scan_type: string; // 'full', 'incremental', 'targeted'
+  total_checks: number;
+  passed_checks: number;
+  failed_checks: number;
+  skipped_checks: number;
+  compliance_score: number; // 0-100
+  frameworks_scanned?: string; // JSON array
+  scan_duration?: number; // milliseconds
+  generated_at: string;
+  checkov_version?: string;
+  scan_options?: string; // JSON with scan configuration
+}
+
+export interface IaCPolicyRule {
+  id?: number;
+  rule_id: string;
+  name: string;
+  category: string;
+  severity: string;
+  frameworks: string; // JSON array
+  resource_types: string; // JSON array
+  description: string;
+  remediation: string;
+  enabled: boolean;
+  custom: boolean; // true for user-defined rules
+  created_at: string;
+  updated_at: string;
+}
+
 export class DatabaseManager {
   private db: Database.Database;
   private dbPath: string;
@@ -586,6 +643,65 @@ export class DatabaseManager {
           standard_scores TEXT, -- JSON with individual standard scores
           report_data TEXT NOT NULL -- Full JSON report data
       );
+
+      -- IaC Security Findings (Checkov scan results)
+      CREATE TABLE IF NOT EXISTS iac_security_findings (
+        id INTEGER PRIMARY KEY,
+        finding_id TEXT UNIQUE NOT NULL,
+        check_type TEXT NOT NULL, -- 'terraform', 'cloudformation', 'kubernetes', etc.
+        resource_type TEXT NOT NULL,
+        resource_name TEXT,
+        file_path TEXT NOT NULL,
+        line_start INTEGER NOT NULL,
+        line_end INTEGER NOT NULL,
+        severity TEXT NOT NULL,
+        check_id TEXT NOT NULL, -- Checkov check ID (e.g., CKV_AWS_23)
+        description TEXT NOT NULL,
+        remediation TEXT NOT NULL,
+        cwe_id TEXT,
+        compliance_frameworks TEXT, -- JSON array of compliance frameworks
+        detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        resolved BOOLEAN DEFAULT FALSE,
+        bc_check_id TEXT, -- Bridgecrew check ID
+        guideline TEXT,
+        frameworks TEXT, -- JSON array of frameworks
+        risk_score INTEGER -- 1-10 risk assessment
+      );
+
+      -- IaC Compliance Reports
+      CREATE TABLE IF NOT EXISTS iac_compliance_reports (
+        id INTEGER PRIMARY KEY,
+        report_id TEXT UNIQUE NOT NULL,
+        project_path TEXT NOT NULL,
+        scan_type TEXT NOT NULL, -- 'full', 'incremental', 'targeted'
+        total_checks INTEGER NOT NULL,
+        passed_checks INTEGER NOT NULL,
+        failed_checks INTEGER NOT NULL,
+        skipped_checks INTEGER NOT NULL,
+        compliance_score INTEGER NOT NULL, -- 0-100
+        frameworks_scanned TEXT, -- JSON array
+        scan_duration INTEGER, -- milliseconds
+        generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        checkov_version TEXT,
+        scan_options TEXT -- JSON with scan configuration
+      );
+
+      -- IaC Policy Rules (Custom and standard security policies)
+      CREATE TABLE IF NOT EXISTS iac_policy_rules (
+        id INTEGER PRIMARY KEY,
+        rule_id TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        frameworks TEXT NOT NULL, -- JSON array
+        resource_types TEXT NOT NULL, -- JSON array
+        description TEXT NOT NULL,
+        remediation TEXT NOT NULL,
+        enabled BOOLEAN DEFAULT TRUE,
+        custom BOOLEAN DEFAULT FALSE, -- true for user-defined rules
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     // Create indexes for better performance
@@ -618,6 +734,17 @@ export class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_ai_security_findings_category ON ai_security_findings(ai_category);
       CREATE INDEX IF NOT EXISTS idx_compliance_reports_project_path ON compliance_reports(project_path);
       CREATE INDEX IF NOT EXISTS idx_compliance_reports_standard_id ON compliance_reports(standard_id);
+      
+      -- IaC table indexes
+      CREATE INDEX IF NOT EXISTS idx_iac_security_findings_file_path ON iac_security_findings(file_path);
+      CREATE INDEX IF NOT EXISTS idx_iac_security_findings_check_id ON iac_security_findings(check_id);
+      CREATE INDEX IF NOT EXISTS idx_iac_security_findings_severity ON iac_security_findings(severity);
+      CREATE INDEX IF NOT EXISTS idx_iac_security_findings_check_type ON iac_security_findings(check_type);
+      CREATE INDEX IF NOT EXISTS idx_iac_security_findings_resource_type ON iac_security_findings(resource_type);
+      CREATE INDEX IF NOT EXISTS idx_iac_compliance_reports_project_path ON iac_compliance_reports(project_path);
+      CREATE INDEX IF NOT EXISTS idx_iac_compliance_reports_generated_at ON iac_compliance_reports(generated_at);
+      CREATE INDEX IF NOT EXISTS idx_iac_policy_rules_category ON iac_policy_rules(category);
+      CREATE INDEX IF NOT EXISTS idx_iac_policy_rules_enabled ON iac_policy_rules(enabled);
     `);
 
     logger.info('Database schema initialized successfully');
@@ -1147,6 +1274,214 @@ export class DatabaseManager {
     });
 
     transaction();
+  }
+
+  // IaC Security Finding operations
+  insertIaCSecurityFinding(finding: IaCSecurityFinding): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO iac_security_findings (
+        finding_id, check_type, resource_type, resource_name, file_path, line_start, line_end,
+        severity, check_id, description, remediation, cwe_id, compliance_frameworks,
+        detected_at, resolved, bc_check_id, guideline, frameworks, risk_score
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      finding.finding_id,
+      finding.check_type,
+      finding.resource_type,
+      finding.resource_name || null,
+      finding.file_path,
+      finding.line_start,
+      finding.line_end,
+      finding.severity,
+      finding.check_id,
+      finding.description,
+      finding.remediation,
+      finding.cwe_id || null,
+      finding.compliance_frameworks || null,
+      finding.detected_at,
+      finding.resolved,
+      finding.bc_check_id || null,
+      finding.guideline || null,
+      finding.frameworks || null,
+      finding.risk_score || null
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getIaCSecurityFindingsByProject(projectPath: string): IaCSecurityFinding[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM iac_security_findings 
+      WHERE file_path LIKE ? 
+      ORDER BY severity, risk_score DESC, detected_at DESC
+    `);
+    return stmt.all(`${projectPath}%`) as IaCSecurityFinding[];
+  }
+
+  getIaCSecurityFindingsByFile(filePath: string): IaCSecurityFinding[] {
+    const stmt = this.db.prepare('SELECT * FROM iac_security_findings WHERE file_path = ? ORDER BY line_start');
+    return stmt.all(filePath) as IaCSecurityFinding[];
+  }
+
+  updateIaCFindingStatus(findingId: string, resolved: boolean): void {
+    const stmt = this.db.prepare('UPDATE iac_security_findings SET resolved = ? WHERE finding_id = ?');
+    stmt.run(resolved, findingId);
+  }
+
+  // IaC Compliance Report operations
+  insertIaCComplianceReport(report: IaCComplianceReport): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO iac_compliance_reports (
+        report_id, project_path, scan_type, total_checks, passed_checks, failed_checks,
+        skipped_checks, compliance_score, frameworks_scanned, scan_duration,
+        generated_at, checkov_version, scan_options
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      report.report_id,
+      report.project_path,
+      report.scan_type,
+      report.total_checks,
+      report.passed_checks,
+      report.failed_checks,
+      report.skipped_checks,
+      report.compliance_score,
+      report.frameworks_scanned || null,
+      report.scan_duration || null,
+      report.generated_at,
+      report.checkov_version || null,
+      report.scan_options || null
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getIaCComplianceReportsByProject(projectPath: string): IaCComplianceReport[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM iac_compliance_reports 
+      WHERE project_path = ? 
+      ORDER BY generated_at DESC
+    `);
+    return stmt.all(projectPath) as IaCComplianceReport[];
+  }
+
+  getLatestIaCComplianceReport(projectPath: string): IaCComplianceReport | undefined {
+    const stmt = this.db.prepare(`
+      SELECT * FROM iac_compliance_reports 
+      WHERE project_path = ? 
+      ORDER BY generated_at DESC 
+      LIMIT 1
+    `);
+    return stmt.get(projectPath) as IaCComplianceReport | undefined;
+  }
+
+  // IaC Policy Rule operations
+  insertIaCPolicyRule(rule: IaCPolicyRule): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO iac_policy_rules (
+        rule_id, name, category, severity, frameworks, resource_types,
+        description, remediation, enabled, custom, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      rule.rule_id,
+      rule.name,
+      rule.category,
+      rule.severity,
+      rule.frameworks,
+      rule.resource_types,
+      rule.description,
+      rule.remediation,
+      rule.enabled,
+      rule.custom,
+      rule.created_at,
+      rule.updated_at
+    );
+    
+    return result.lastInsertRowid as number;
+  }
+
+  getIaCPolicyRules(category?: string, enabled?: boolean): IaCPolicyRule[] {
+    let query = 'SELECT * FROM iac_policy_rules WHERE 1=1';
+    const params: any[] = [];
+    
+    if (category) {
+      query += ' AND category = ?';
+      params.push(category);
+    }
+    
+    if (enabled !== undefined) {
+      query += ' AND enabled = ?';
+      params.push(enabled);
+    }
+    
+    query += ' ORDER BY category, name';
+    
+    const stmt = this.db.prepare(query);
+    return stmt.all(...params) as IaCPolicyRule[];
+  }
+
+  updateIaCPolicyRule(ruleId: string, updates: Partial<IaCPolicyRule>): void {
+    const setClause = Object.keys(updates)
+      .filter(key => key !== 'id' && key !== 'rule_id')
+      .map(key => `${key} = ?`)
+      .join(', ');
+    
+    if (!setClause) return;
+    
+    const values = Object.keys(updates)
+      .filter(key => key !== 'id' && key !== 'rule_id')
+      .map(key => updates[key as keyof IaCPolicyRule]);
+    
+    values.push(ruleId);
+    
+    const stmt = this.db.prepare(`
+      UPDATE iac_policy_rules 
+      SET ${setClause}, updated_at = CURRENT_TIMESTAMP 
+      WHERE rule_id = ?
+    `);
+    
+    stmt.run(...values);
+  }
+
+  deleteIaCPolicyRule(ruleId: string): void {
+    const stmt = this.db.prepare('DELETE FROM iac_policy_rules WHERE rule_id = ?');
+    stmt.run(ruleId);
+  }
+
+  // IaC Statistics and Analytics
+  getIaCSecurityStatsByProject(projectPath: string): {
+    totalFindings: number;
+    findingsBySeverity: Record<string, number>;
+    findingsByCheckType: Record<string, number>;
+    complianceScore: number;
+  } {
+    const findings = this.getIaCSecurityFindingsByProject(projectPath);
+    
+    const findingsBySeverity: Record<string, number> = {};
+    const findingsByCheckType: Record<string, number> = {};
+    
+    findings.forEach(finding => {
+      findingsBySeverity[finding.severity] = (findingsBySeverity[finding.severity] || 0) + 1;
+      findingsByCheckType[finding.check_type] = (findingsByCheckType[finding.check_type] || 0) + 1;
+    });
+    
+    const latestReport = this.getLatestIaCComplianceReport(projectPath);
+    const complianceScore = latestReport?.compliance_score || 0;
+    
+    return {
+      totalFindings: findings.length,
+      findingsBySeverity,
+      findingsByCheckType,
+      complianceScore
+    };
   }
 }
 
